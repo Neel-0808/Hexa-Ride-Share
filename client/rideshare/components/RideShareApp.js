@@ -15,22 +15,22 @@ const RideShareApp = () => {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [rides, setRides] = useState([]);
   const [filteredRides, setFilteredRides] = useState([]);
-  const [isFiltered, setIsFiltered] = useState(false); // Track if search is applied
+  const [isFiltered, setIsFiltered] = useState(false);
   const navigation = useNavigation();
 
   // Fetch all rides when the app loads
   useEffect(() => {
     const fetchAllRides = async () => {
       try {
-        const response = await axios.get('http://192.168.62.164:3000/api/rides'); // Use your machine's local IP address
+        const response = await axios.get('http://192.168.35.164:3000/api/rides');
         setRides(response.data);
-        setFilteredRides(response.data); // Initially show all rides
+        setFilteredRides(response.data);
       } catch (error) {
         Alert.alert('Error', `Failed to fetch rides. Error: ${error.message}`);
       }
     };
 
-    fetchAllRides(); // Fetch rides when component mounts
+    fetchAllRides();
   }, []);
 
   const handleSearch = async () => {
@@ -40,11 +40,10 @@ const RideShareApp = () => {
     }
 
     try {
-      const formattedDate = date.toISOString().split('T')[0]; // Format date as YYYY-MM-DD
-      const formattedTime = time.toTimeString().split(' ')[0]; // Format time as HH:MM:SS
+      const formattedDate = date.toISOString().split('T')[0];
+      const formattedTime = time.toTimeString().split(' ')[0];
 
-      // Fetch all rides again and then filter locally
-      const response = await axios.get('http://192.168.62.164:3000/api/rides', {
+      const response = await axios.get('http://192.168.35.164:3000/api/rides', {
         params: {
           date: formattedDate,
           time: formattedTime,
@@ -56,8 +55,8 @@ const RideShareApp = () => {
         ride.destination.trim().toLowerCase().includes(destination.trim().toLowerCase())
       );
 
-      setFilteredRides(filtered); // Update filtered rides based on search results
-      setIsFiltered(true); // Mark that search has been applied
+      setFilteredRides(filtered);
+      setIsFiltered(true);
 
       if (filtered.length === 0) {
         Alert.alert('No Results', 'No rides match your search criteria.');
@@ -87,9 +86,32 @@ const RideShareApp = () => {
       },
     });
   };
-
+  const handleRideRequest = async () => {
+    try {
+      const response = await axios.get("http://192.168.35.164:3000/api/ride-requests");
+      console.log("Ride Requests Data:", response.data); // Debugging API response
+  
+      // Check if response data is an array and contains at least one item
+      if (Array.isArray(response.data) && response.data.length > 0) {
+        const requestId = response.data[0].id; // Accessing the 'id' of the first item
+  
+        if (requestId) {
+          console.log("Navigating to NotificationScreen with requestId:", requestId);
+          navigation.navigate("NotificationScreen", { requestId });
+        } else {
+          Alert.alert("Error", "No ride request ID found.");
+        }
+      } else {
+        Alert.alert("Error", "No ride requests available.");
+      }
+    } catch (error) {
+      console.log("Error fetching ride requests:", error.message); // Debugging error
+      Alert.alert("Error", `Failed to fetch ride requests. Error: ${error.message}`);
+    }
+  };
+  
   const handleRidePress = (ride) => {
-    navigation.navigate('AvailableRides', {  ride }); // Navigating to AvailableRides page
+    navigation.navigate('AvailableRides', { ride });
   };
 
   return (
@@ -101,6 +123,9 @@ const RideShareApp = () => {
         <Text style={tw`text-white text-xl font-bold`}>Buddy</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
           <Ionicons name="person-circle-outline" size={40} color="white" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleRideRequest}>
+          <Ionicons name="notifications-outline" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
@@ -163,7 +188,6 @@ const RideShareApp = () => {
       </View>
 
       <ScrollView style={tw`p-5`}>
-        {/* Show filtered rides if search has been applied */}
         {isFiltered ? (
           <>
             <Text style={tw`text-lg font-bold mb-2`}>Filtered Rides</Text>
@@ -172,7 +196,7 @@ const RideShareApp = () => {
                 <TouchableOpacity
                   key={ride.id}
                   style={tw`bg-white p-4 mb-3 rounded-lg shadow-md`}
-                  onPress={() => handleRidePress(ride)} // Navigate to ride details on press
+                  onPress={() => handleRidePress(ride)}
                 >
                   <Text style={tw`text-base`}>Driver Name: {ride.driver_name}</Text>
                   <Text style={tw`text-base`}>Vehicle Info: {ride.vehicle_info}</Text>
@@ -193,7 +217,7 @@ const RideShareApp = () => {
                 <TouchableOpacity
                   key={ride.id}
                   style={tw`bg-white p-4 mb-3 rounded-lg shadow-md`}
-                  onPress={() => handleRidePress(ride)} // Navigate to ride details on press
+                  onPress={() => handleRidePress(ride)}
                 >
                   <Text style={tw`text-base`}>Driver Name: {ride.driver_name}</Text>
                   <Text style={tw`text-base`}>Vehicle Info: {ride.vehicle_info}</Text>

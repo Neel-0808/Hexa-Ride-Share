@@ -12,6 +12,8 @@ import { Ionicons } from "@expo/vector-icons";
 import tw from "twrnc"; // Tailwind CSS for styling
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants'; // Importing Expo Notifications
 
 const RideDetails = ({ route }) => {
   const { requestId } = route.params;
@@ -21,10 +23,12 @@ const RideDetails = ({ route }) => {
   const [pickupLocation, setPickupLocation] = useState("");
   const [destinationLocation, setDestinationLocation] = useState("");
   const [contact, setContact] = useState("");
-
+  
   const navigation = useNavigation();
 
   const handleSubmit = async () => {
+    const expoPushToken = await registerForPushNotificationsAsync();
+  
     if (
       !riderName ||
       !gender ||
@@ -36,8 +40,7 @@ const RideDetails = ({ route }) => {
       Alert.alert("Error", "Please fill all the fields.");
       return;
     }
-
-    // Create a new ride request object
+  
     const rideRequest = {
       rider_name: riderName,
       gender: gender,
@@ -45,18 +48,58 @@ const RideDetails = ({ route }) => {
       pickup_location: pickupLocation,
       destination_location: destinationLocation,
       contact: contact,
+      push_token: expoPushToken, // Changed to push_token
     };
-
+  
     try {
-      // Send POST request to create a new ride request
-      await axios.post("http://192.168.62.164:3000/api/ride-requests", rideRequest);
-      Alert.alert("Success", "Ride request has been submitted!");
-      navigation.navigate("AvailableRides");
+      const response = await axios.post("http://192.168.35.164:3000/api/ride-requests", rideRequest);
+  
+      // Correctly extract requestId from the response
+      const requestId = response.data.requestId;
+  
+      if (requestId) {
+        Alert.alert("Success", "Ride request has been submitted!");
+        console.log("Navigating to NotificationScreen with requestId:", requestId);
+        navigation.navigate("NotificationScreen", { requestId });
+      } else {
+        console.error("Error: No requestId received");
+        Alert.alert("Error", "Failed to get requestId from the server.");
+      }
     } catch (error) {
-      Alert.alert("Error", `Failed to submit ride request: ${error.message}`);
+      if (error.response && error.response.status === 500) {
+        Alert.alert("Error", "Request failed with status code 500. Please try again.");
+      } else {
+        Alert.alert("Error", `Failed to submit ride request: ${error.message}`);
+      }
     }
   };
+  
 
+  
+  // Function to register for push notifications and get Expo push token
+  async function registerForPushNotificationsAsync() {
+    let token;
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+  
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+  
+    if (finalStatus !== 'granted') {
+      Alert.alert('Failed to get push token for push notification!');
+      return;
+    }
+  
+    token = (await Notifications.getExpoPushTokenAsync({
+      projectId: Constants.manifest?.expo?.projectId,
+    })).data;
+  
+    console.log(token); // You should store this in your backend
+    return token;
+  }
+  
   return (
     <SafeAreaView style={tw`flex-1 bg-white`}>
       {/* Header */}

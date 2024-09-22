@@ -27,7 +27,7 @@ const MapScreen = ({ route, navigation }) => {
         });
 
         setCurrentLocation(coords);
-        setPickupLocation(coords); // Set initial pickup location to current location
+        setPickupLocation(coords);
       } catch (error) {
         Alert.alert("Error", "An error occurred while fetching location");
         console.error(error);

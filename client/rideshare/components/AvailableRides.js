@@ -20,8 +20,13 @@ const AvailableRides = () => {
   useEffect(() => {
     const fetchRideRequests = async () => {
       try {
-        const response = await axios.get("http://192.168.62.164:3000/api/rides");
-        setRideRequests(response.data);
+        const response = await axios.get("http://192.168.35.164:3000/api/rides");
+        // Log the response data
+        if (Array.isArray(response.data)) {
+          setRideRequests(response.data);
+        } else {
+          Alert.alert("Error", "Unexpected response format");
+        }
       } catch (error) {
         Alert.alert("Error", `Failed to fetch ride requests: ${error.message}`);
       }
@@ -53,11 +58,11 @@ const AvailableRides = () => {
         {rideRequests.length > 0 ? (
           rideRequests.map((ride) => (
             <View key={ride.id} style={tw`bg-gray-100 p-4 mb-4 rounded-lg shadow-lg`}>
-              <Text style={tw`text-lg font-bold`}>Driver Name: {ride.driver_name || "xxx"}</Text>
-              <Text style={tw`text-base`}>Gender: {ride.gender || "Male"}</Text>
-              <Text style={tw`text-base`}>Car Type: {ride.car_type || "Swift"}</Text>
-              <Text style={tw`text-base`}>Seats Available: {ride.seats_available || 2}</Text>
-              <Text style={tw`text-base`}>Estimated Time: {ride.estimated_time || "2 minutes"}</Text>
+             <Text style={tw`text-base`}>Driver Name: {ride.driver_name}</Text>
+                  <Text style={tw`text-base`}>Vehicle Info: {ride.vehicle_info}</Text>
+                  <Text style={tw`text-base`}>Origin: {ride.origin}</Text>
+                  <Text style={tw`text-base`}>Destination: {ride.destination}</Text>
+                  <Text style={tw`text-base`}>Available Seats: {ride.available_seats}</Text>
               <TouchableOpacity
                 style={tw`bg-blue-500 p-2 rounded mt-2`}
                 onPress={() => handleMoreDetails(ride.id)}
