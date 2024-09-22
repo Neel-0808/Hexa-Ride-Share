@@ -29,6 +29,28 @@ db.connect((err) => {
   }
 });
 
+// POST request to insert a new ride
+// POST request to insert a new ride
+app.post('/api/rides', (req, res) => {
+  const { driver_name, vehicle_info, origin, destination, available_seats } = req.body;
+
+  // SQL query to insert new ride into the rides table
+  const sqlQuery = 'INSERT INTO rides (driver_name, vehicle_info, origin, destination, available_seats) VALUES (?, ?, ?, ?, ?)';
+  const rideData = [driver_name, vehicle_info, origin, destination, available_seats];
+
+  db.query(sqlQuery, rideData, (err, result) => {
+    if (err) {
+      console.error('Error inserting new ride:', err);
+      res.status(500).json({ error: 'Failed to insert new ride' });
+    } else {
+      res.status(201).json({
+        message: 'Ride added successfully',
+        rideId: result.insertId, // Returns the ID of the newly created ride
+      });
+    }
+  });
+});
+
 // GET request to fetch all available rides
 app.get('/api/rides', (req, res) => {
   const sqlQuery = 'SELECT * FROM rides';
