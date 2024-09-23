@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Image } from "react-native";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { Checkbox } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
+import axios from "axios"; // Import axios
 import tw from "twrnc";
 
 const Login = () => {
@@ -16,9 +17,34 @@ const Login = () => {
     setIsPasswordVisible(!isPasswordVisible);
   };
 
+  const fetchUserCredentials = async () => {
+    try {
+      const response = await axios.get('http://192.168.35.164:3000/api/login', {
+        params: {
+          email,    // Ensure email is fetched from state
+          password, // Ensure password is fetched from state
+        },
+      });
+  
+      if (response.status === 200) {
+        console.log('Login successful:', response.data);
+        // Navigate to the next screen after successful login
+        navigation.navigate("LocationScreen"); // Replace 'LocationScreen' with your screen
+      }
+    } catch (error) {
+      if (error.response) {
+        console.error('Error:', error.response.data.message);
+        alert(error.response.data.message); // Show error message to the user
+      } else {
+        console.error('Unexpected error:', error);
+        alert('An unexpected error occurred.');
+      }
+    }
+  };
+
   const handleLogin = () => {
     if (email && password) {
-      navigation.navigate("LocationScreen");
+      fetchUserCredentials(); // Call fetch function to get data from backend
     } else {
       alert("Please enter your credentials");
     }

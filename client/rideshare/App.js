@@ -13,6 +13,7 @@ import AvailableRides from "./components/AvailableRides";
 import RideDetails from "./components/RideDetails";
 import PostRideScreen from "./components/DriverComponents/PostRideScreen";
 import NotificationScreen from "./components/NotificationScreen";
+import GoogleMapScreen from "./components/DriverComponents/GoogleMapScreen";
 
 // Create the stack navigator
 const Stack = createStackNavigator();
@@ -95,6 +96,11 @@ export default function App() {
         <Stack.Screen
           name="NotificationScreen"
           component={NotificationScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="GoogleMapScreen"
+          component={GoogleMapScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

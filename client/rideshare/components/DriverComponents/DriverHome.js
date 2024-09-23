@@ -54,45 +54,40 @@ const DriverHome = () => {
   const handleAccept = async () => {
     try {
       if (!selectedRequest) {
-        console.log("No request selected"); // Debugging for empty request
         Alert.alert("Error", "No request selected");
         return;
       }
-
-      // Log the selected request ID for debugging
-      console.log("Selected Request ID:", selectedRequest.id);
-
-      if (!selectedRequest.id) {
-        Alert.alert("Error", "Selected request does not have an ID.");
-        return;
-      }
-
-      // POST request to notify the backend that the ride has been accepted
+  
       const response = await axios.post(
         `http://192.168.35.164:3000/api/ride-requests/${selectedRequest.id}/accept`,
         {
-          driver_id: "driver123", // Pass the driver's ID or other relevant information
-          request_id: selectedRequest.id, // Ride request ID to accept
+          driver_id: "driver123", // Driver's ID
+          request_id: selectedRequest.id,
         }
       );
-
-      // Handle success response
+  
       if (response.status === 200) {
-        console.log("Ride request accepted:", response.data); // Debugging success response
-        Alert.alert("Success", "Ride request accepted and notification sent to rider.");
+        Alert.alert("Success", "Ride request accepted.");
+        
+        // Navigate to the RideMap screen with the ride details
+        navigation.navigate("GoogleMapScreen", {
+          pickupLocation: {
+            latitude: selectedRequest.pickup_latitude,
+            longitude: selectedRequest.pickup_longitude,
+          },
+          destinationLocation: {
+            latitude: selectedRequest.destination_latitude,
+            longitude: selectedRequest.destination_longitude,
+          },
+        });
       } else {
-        console.log("Failed to accept ride request, status:", response.status); // Debugging failure response
-        Alert.alert("Error", "Failed to accept the ride request. Please try again.");
+        Alert.alert("Error", "Failed to accept the ride request.");
       }
-
-      setModalVisible(false);
     } catch (error) {
-      console.log("Error accepting ride request:", error.message); // Debugging error
-      Alert.alert("Error", `Failed to accept ride request. Error: ${error.message}`);
-      setModalVisible(false);
+      Alert.alert("Error", `Failed to accept ride request. ${error.message}`);
     }
   };
-
+  
   const handleReject = async () => {
     console.log("Ride request rejected for:", selectedRequest); // Debugging rejected request
     Alert.alert("Rejected", "You have rejected the ride request.");

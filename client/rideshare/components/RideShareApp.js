@@ -17,6 +17,10 @@ const RideShareApp = () => {
   const [filteredRides, setFilteredRides] = useState([]);
   const [isFiltered, setIsFiltered] = useState(false);
   const navigation = useNavigation();
+  
+  // Dropdown state
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showNotificationMenu, setShowNotificationMenu] = useState(false);
 
   // Fetch all rides when the app loads
   useEffect(() => {
@@ -86,14 +90,14 @@ const RideShareApp = () => {
       },
     });
   };
+
   const handleRideRequest = async () => {
     try {
       const response = await axios.get("http://192.168.35.164:3000/api/ride-requests");
-      console.log("Ride Requests Data:", response.data); // Debugging API response
+      console.log("Ride Requests Data:", response.data);
   
-      // Check if response data is an array and contains at least one item
       if (Array.isArray(response.data) && response.data.length > 0) {
-        const requestId = response.data[0].id; // Accessing the 'id' of the first item
+        const requestId = response.data[0].id;
   
         if (requestId) {
           console.log("Navigating to NotificationScreen with requestId:", requestId);
@@ -105,13 +109,24 @@ const RideShareApp = () => {
         Alert.alert("Error", "No ride requests available.");
       }
     } catch (error) {
-      console.log("Error fetching ride requests:", error.message); // Debugging error
+      console.log("Error fetching ride requests:", error.message);
       Alert.alert("Error", `Failed to fetch ride requests. Error: ${error.message}`);
     }
   };
   
   const handleRidePress = (ride) => {
     navigation.navigate('AvailableRides', { ride });
+  };
+
+  // Toggle functions
+  const toggleProfileMenu = () => {
+    setShowProfileMenu(prev => !prev);
+    setShowNotificationMenu(false); // Close notification menu if it's open
+  };
+
+  const toggleNotificationMenu = () => {
+    setShowNotificationMenu(prev => !prev);
+    setShowProfileMenu(false); // Close profile menu if it's open
   };
 
   return (
@@ -121,12 +136,31 @@ const RideShareApp = () => {
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <Text style={tw`text-white text-xl font-bold`}>Buddy</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-          <Ionicons name="person-circle-outline" size={40} color="white" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleRideRequest}>
-          <Ionicons name="notifications-outline" size={24} color="white" />
-        </TouchableOpacity>
+        <View style={tw`flex-row`}>
+          <TouchableOpacity onPress={toggleProfileMenu}>
+            <Ionicons name="person-circle-outline" size={40} color="white" />
+          </TouchableOpacity>
+          {showProfileMenu && (
+            <View style={tw`absolute right-0 bg-white shadow-lg mt-2 rounded`}>
+              <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+                <Text style={tw`p-2`}>Profile</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => Alert.alert('Logout', 'Are you sure you want to logout?')}>
+                <Text style={tw`p-2`}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <TouchableOpacity onPress={toggleNotificationMenu}>
+            <Ionicons name="notifications-outline" size={24} color="white" />
+          </TouchableOpacity>
+          {showNotificationMenu && (
+            <View style={tw`absolute right-0 bg-white shadow-lg mt-2 rounded`}>
+              <TouchableOpacity onPress={handleRideRequest}>
+                <Text style={tw`p-2`}>Check Notifications</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </View>
 
       <View style={tw`bg-white p-5 m-4 rounded-lg shadow-lg`}>
