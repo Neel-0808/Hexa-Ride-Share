@@ -55,26 +55,30 @@ const AvailableRides = () => {
 
       {/* List of Rides */}
       <ScrollView style={tw`p-4`}>
-        {rideRequests.length > 0 ? (
-          rideRequests.map((ride) => (
-            <View key={ride.id} style={tw`bg-gray-100 p-4 mb-4 rounded-lg shadow-lg`}>
-             <Text style={tw`text-base`}>Driver Name: {ride.driver_name}</Text>
-                  <Text style={tw`text-base`}>Vehicle Info: {ride.vehicle_info}</Text>
-                  <Text style={tw`text-base`}>Origin: {ride.origin}</Text>
-                  <Text style={tw`text-base`}>Destination: {ride.destination}</Text>
-                  <Text style={tw`text-base`}>Available Seats: {ride.available_seats}</Text>
-              <TouchableOpacity
-                style={tw`bg-blue-500 p-2 rounded mt-2`}
-                onPress={() => handleMoreDetails(ride.id)}
-              >
-                <Text style={tw`text-white text-center`}>More Details</Text>
-              </TouchableOpacity>
-            </View>
-          ))
-        ) : (
-          <Text style={tw`text-center text-gray-500`}>No rides available at the moment</Text>
-        )}
-      </ScrollView>
+  {rideRequests.length > 0 ? (
+    rideRequests
+      .slice() // Create a copy of the array to avoid mutating the original state
+      .reverse() // Reverse the copy to display the most recent rides first
+      .map((ride) => (
+        <View key={ride.id} style={tw`bg-gray-100 p-4 mb-4 rounded-lg shadow-lg`}>
+          <Text style={tw`text-base`}>Driver Name: {ride.driver_name}</Text>
+          <Text style={tw`text-base`}>Vehicle Info: {ride.vehicle_info}</Text>
+          <Text style={tw`text-base`}>Origin: {ride.origin}</Text>
+          <Text style={tw`text-base`}>Destination: {ride.destination}</Text>
+          <Text style={tw`text-base`}>Available Seats: {ride.available_seats}</Text>
+          <TouchableOpacity
+            style={tw`bg-blue-500 p-2 rounded mt-2`}
+            onPress={() => handleMoreDetails(ride.id)}
+          >
+            <Text style={tw`text-white text-center`}>More Details</Text>
+          </TouchableOpacity>
+        </View>
+      ))
+  ) : (
+    <Text style={tw`text-center text-gray-500`}>No rides available at the moment</Text>
+  )}
+</ScrollView>
+
     </SafeAreaView>
   );
 };

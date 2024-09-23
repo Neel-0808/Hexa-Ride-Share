@@ -222,49 +222,57 @@ const RideShareApp = () => {
       </View>
 
       <ScrollView style={tw`p-5`}>
-        {isFiltered ? (
-          <>
-            <Text style={tw`text-lg font-bold mb-2`}>Filtered Rides</Text>
-            {filteredRides.length > 0 ? (
-              filteredRides.map((ride) => (
-                <TouchableOpacity
-                  key={ride.id}
-                  style={tw`bg-white p-4 mb-3 rounded-lg shadow-md`}
-                  onPress={() => handleRidePress(ride)}
-                >
-                  <Text style={tw`text-base`}>Driver Name: {ride.driver_name}</Text>
-                  <Text style={tw`text-base`}>Vehicle Info: {ride.vehicle_info}</Text>
-                  <Text style={tw`text-base`}>Origin: {ride.origin}</Text>
-                  <Text style={tw`text-base`}>Destination: {ride.destination}</Text>
-                  <Text style={tw`text-base`}>Available Seats: {ride.available_seats}</Text>
-                </TouchableOpacity>
-              ))
-            ) : (
-              <Text style={tw`text-center text-gray-500`}>No rides found for your search</Text>
-            )}
-          </>
-        ) : (
-          <>
-            <Text style={tw`text-lg font-bold mb-2`}>Available Rides</Text>
-            {rides.length > 0 ? (
-              rides.map((ride) => (
-                <TouchableOpacity
-                  key={ride.id}
-                  style={tw`bg-white p-4 mb-3 rounded-lg shadow-md`}
-                  onPress={() => handleRidePress(ride)}
-                >
-                  <Text style={tw`text-base`}>Driver Name: {ride.driver_name}</Text>
-                  <Text style={tw`text-base`}>Vehicle Info: {ride.vehicle_info}</Text>
-                  <Text style={tw`text-base`}>Origin: {ride.origin}</Text>
-                  <Text style={tw`text-base`}>Destination: {ride.destination}</Text>
-                  <Text style={tw`text-base`}>Available Seats: {ride.available_seats}</Text>
-                </TouchableOpacity>
-              ))
-            ) : (
-              <Text style={tw`text-center text-gray-500`}>No rides available</Text>
-            )}
-          </>
-        )}
+      {isFiltered ? (
+  <>
+    <Text style={tw`text-lg font-bold mb-2`}>Filtered Rides</Text>
+    {filteredRides.length > 0 ? (
+      filteredRides
+        .slice() // Make a shallow copy of the array to avoid mutating the original
+        .reverse()
+        .map((ride) => (
+          <TouchableOpacity
+            key={ride.id}
+            style={tw`bg-white p-4 mb-3 rounded-lg shadow-md`}
+            onPress={() => handleRidePress(ride)}
+          >
+            <Text style={tw`text-base`}>Driver Name: {ride.driver_name}</Text>
+            <Text style={tw`text-base`}>Vehicle Info: {ride.vehicle_info}</Text>
+            <Text style={tw`text-base`}>Origin: {ride.origin}</Text>
+            <Text style={tw`text-base`}>Destination: {ride.destination}</Text>
+            <Text style={tw`text-base`}>Available Seats: {ride.available_seats}</Text>
+          </TouchableOpacity>
+        ))
+    ) : (
+      <Text style={tw`text-center text-gray-500`}>No rides found for your search</Text>
+    )}
+  </>
+) : (
+  <>
+    <Text style={tw`text-lg font-bold mb-2`}>Available Rides</Text>
+    {rides.length > 0 ? (
+      rides
+        .slice() // Make a shallow copy of the array to avoid mutating the original
+        .reverse()
+        .map((ride) => (
+          <TouchableOpacity
+            key={ride.id}
+            style={tw`bg-white p-4 mb-3 rounded-lg shadow-md`}
+            onPress={() => handleRidePress(ride)}
+          >
+            <Text style={tw`text-base`}>Driver Name: {ride.driver_name}</Text>
+            <Text style={tw`text-base`}>Vehicle Info: {ride.vehicle_info}</Text>
+            <Text style={tw`text-base`}>Origin: {ride.origin}</Text>
+            <Text style={tw`text-base`}>Destination: {ride.destination}</Text>
+            <Text style={tw`text-base`}>Available Seats: {ride.available_seats}</Text>
+            <Text style={tw`text-base`}>Time: {ride.ride_time}</Text>
+          </TouchableOpacity>
+        ))
+    ) : (
+      <Text style={tw`text-center text-gray-500`}>No rides available</Text>
+    )}
+  </>
+)}
+
       </ScrollView>
     </SafeAreaView>
   );

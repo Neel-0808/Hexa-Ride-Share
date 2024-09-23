@@ -68,12 +68,12 @@ app.get('/api/login', async (req, res) => {
 
 // POST request to insert a new ride
 app.post('/api/rides', async (req, res) => {
-  const { driver_name, vehicle_info, origin, destination, available_seats } = req.body;
+  const { driver_name, vehicle_info, origin, destination, available_seats,ride_time,ride_date} = req.body;
 
   try {
     const result = await dbQuery(
-      'INSERT INTO rides (driver_name, vehicle_info, origin, destination, available_seats) VALUES (?, ?, ?, ?, ?)',
-      [driver_name, vehicle_info, origin, destination, available_seats]
+      'INSERT INTO rides (driver_name, vehicle_info, origin, destination, available_seats,ride_time,ride_date) VALUES (?,?,?, ?, ?, ?, ?)',
+      [driver_name, vehicle_info, origin, destination, available_seats,ride_time,ride_date]
     );
     res.status(201).json({ message: 'Ride added successfully', rideId: result.insertId });
   } catch (error) {

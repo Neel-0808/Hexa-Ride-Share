@@ -82,8 +82,8 @@ const PostRideScreen = () => {
       origin: pickupLocation,
       destination: destination,
       available_seats: parseInt(seatsAvailable),
-      date: date.toISOString(),
-      time: time.toISOString(),
+      ride_date: date.toLocaleDateString('en-CA'), // Format date as YYYY-MM-DD
+      ride_time: time.toLocaleTimeString('en-CA', { hour12: false }),
     };
 
     try {

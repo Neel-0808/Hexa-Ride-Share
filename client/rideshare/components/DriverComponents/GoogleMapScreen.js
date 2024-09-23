@@ -1,160 +1,156 @@
-import axios from "axios"; // Import axios for making HTTP requests
+import React, { useState, useEffect } from "react";
+import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
 import * as Location from "expo-location";
-import React, { useEffect, useState } from "react";
-import { Alert, Button, Text, View } from "react-native";
-import MapView, { Marker } from "react-native-maps";
-import tw from "twrnc";
+import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps"; 
+import { useRoute } from "@react-navigation/native";
 
-const MapScreen = ({ route, navigation }) => {
-  const [currentLocation, setCurrentLocation] = useState(null);
-  const [pickupLocation, setPickupLocation] = useState(null);
-  const [destinationLocation, setDestinationLocation] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [pickupAddress, setPickupAddress] = useState("");
-  const [destinationAddress, setDestinationAddress] = useState("");
+const RideMap = () => {
+  const route = useRoute();
+  const { pickupLocation, destinationLocation } = route.params;
 
-  useEffect(() => {
-    const fetchCurrentLocation = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          Alert.alert(
-            "Permission Denied",
-            "Location permission is required to use this feature"
-          );
-          return;
-        }
+  const [driverLocation, setDriverLocation] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [distanceToPickup, setDistanceToPickup] = useState(0);
+  const [distanceToDestination, setDistanceToDestination] = useState(0);
+  const [address, setAddress] = useState(""); // State to store the address
 
-        const { coords } = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
-        setCurrentLocation(coords);
-        setPickupLocation(coords);
-        await fetchAddress(coords.latitude, coords.longitude, true); // Fetch address for pickup location
-      } catch (error) {
-        Alert.alert("Error", "An error occurred while fetching location");
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const getAddressFromCoordinates = async (lat, lng) => {
+    const apiKey = "AlzaSySYTQx58Zc8aD7Dp3WT0-nwAs9cFivaTkF"; // Replace with your GoMap API key
+    const url = `https://api.gomap.com/v1/geocode?lat=${lat}&lng=${lng}&key=${apiKey}`;
 
-    fetchCurrentLocation();
-  }, []);
-
-  const fetchAddress = async (latitude, longitude, isPickup) => {
     try {
-      const response = await axios.get(
-        `https://nominatim.openstreetmap.org/reverse`,
-        {
-          params: {
-            lat: latitude,
-            lon: longitude,
-            format: "json",
-          },
-        }
-      );
-      const address = response.data.display_name;
-      if (isPickup) {
-        setPickupAddress(address);
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        setAddress(data.results[0].formatted_address);
       } else {
-        setDestinationAddress(address);
+        setAddress("Address not found");
       }
     } catch (error) {
       console.error("Error fetching address:", error);
-      Alert.alert("Error", "Failed to fetch address for the selected location");
+      setAddress("Failed to fetch address");
     }
   };
 
-  const handleConfirm = () => {
-    if (pickupLocation && destinationLocation) {
-      if (route.params?.setLocation) {
-        route.params.setLocation(
-          {
-            latitude: pickupLocation.latitude,
-            longitude: pickupLocation.longitude,
-          },
-          {
-            latitude: destinationLocation.latitude,
-            longitude: destinationLocation.longitude,
-          }
-        );
-      }
-      navigation.goBack();
-    } else {
-      Alert.alert("Error", "Both pickup and destination locations must be set");
-    }
-  };
-
-  const handleDriverLocationUpdate = async () => {
-    try {
-      const { coords } = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-      setCurrentLocation(coords);
-    } catch (error) {
-      Alert.alert("Error", "Unable to update driver location");
-      console.error(error);
-    }
-  };
-
+  // Get driver's current location
   useEffect(() => {
-    const interval = setInterval(() => {
-      handleDriverLocationUpdate(); // Update driver location every 5 seconds
-    }, 5000);
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrorMsg("Permission to access location was denied");
+        return;
+      }
 
-    return () => clearInterval(interval); // Clear the interval on component unmount
+      let location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+      setDriverLocation({ latitude, longitude });
+
+      // Get address for driver's location
+      await getAddressFromCoordinates(latitude, longitude);
+    })();
   }, []);
 
-  if (loading) {
-    return (
-      <View style={tw`flex-1 justify-center items-center`}>
-        <Text>Loading...</Text>
-      </View>
-    );
+  useEffect(() => {
+    if (driverLocation) {
+      setDistanceToPickup(getDistance(driverLocation, pickupLocation));
+      setDistanceToDestination(getDistance(pickupLocation, destinationLocation));
+    }
+  }, [driverLocation, pickupLocation, destinationLocation]);
+
+  const getDistance = (coords1, coords2) => {
+    const toRad = (value) => (value * Math.PI) / 180;
+    const R = 6371; // Radius of the Earth in km
+    const dLat = toRad(coords2.latitude - coords1.latitude);
+    const dLon = toRad(coords2.longitude - coords1.longitude);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(coords1.latitude)) *
+        Math.cos(toRad(coords2.latitude)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+  };
+
+  if (errorMsg) {
+    return <Text>{errorMsg}</Text>;
+  }
+
+  if (!driverLocation) {
+    return <ActivityIndicator size="large" color="#0000ff" />;
+  }
+
+  // Ensure pickup and destination locations are valid
+  if (!pickupLocation || !destinationLocation) {
+    return <Text>Error: Invalid pickup or destination location</Text>;
   }
 
   return (
-    <View style={tw`flex-1`}>
+    <View style={styles.container}>
       <MapView
-        style={tw`flex-1`}
+        provider={PROVIDER_DEFAULT}
+        style={styles.map}
         initialRegion={{
-          latitude: currentLocation ? currentLocation.latitude : 37.78825,
-          longitude: currentLocation ? currentLocation.longitude : -122.4324,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        }}
-        onPress={(event) => {
-          const { latitude, longitude } = event.nativeEvent.coordinate;
-          if (!pickupLocation) {
-            setPickupLocation({ latitude, longitude });
-            fetchAddress(latitude, longitude, true); // Fetch address for pickup
-          } else if (!destinationLocation) {
-            setDestinationLocation({ latitude, longitude });
-            fetchAddress(latitude, longitude, false); // Fetch address for destination
-          }
+          latitude: driverLocation.latitude,
+          longitude: driverLocation.longitude,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
         }}
       >
-        {currentLocation && (
-          <Marker coordinate={currentLocation} title="Driver's Location" />
-        )}
-        {pickupLocation && (
-          <Marker coordinate={pickupLocation} title="Pickup Location" />
-        )}
-        {destinationLocation && (
-          <Marker
-            coordinate={destinationLocation}
-            title="Destination Location"
-          />
-        )}
+        <Marker
+          coordinate={driverLocation}
+          title="Driver Location"
+        />
+        <Marker
+          coordinate={pickupLocation}
+          title="Pickup Location"
+          pinColor="green"
+        />
+        <Marker
+          coordinate={destinationLocation}
+          title="Destination Location"
+          pinColor="red"
+        />
       </MapView>
-      <View style={tw`absolute bottom-0 left-0 right-0 p-4`}>
-        <Text>Pickup Address: {pickupAddress}</Text>
-        <Text>Destination Address: {destinationAddress}</Text>
-        <Button title="Confirm" onPress={handleConfirm} />
+
+      <View style={styles.distanceContainer}>
+        <Text>Distance to Pickup: {distanceToPickup.toFixed(2)} km</Text>
+        <Text>Distance to Destination: {distanceToDestination.toFixed(2)} km</Text>
+      </View>
+
+      <View style={styles.addressContainer}>
+        <Text>Driver's Address: {address}</Text>
       </View>
     </View>
   );
 };
 
-export default MapScreen;
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  map: {
+    flex: 1,
+  },
+  distanceContainer: {
+    padding: 10,
+    backgroundColor: 'white',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  addressContainer: {
+    padding: 10,
+    backgroundColor: 'white',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+});
+
+export default RideMap;
