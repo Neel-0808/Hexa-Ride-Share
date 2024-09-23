@@ -14,6 +14,8 @@ import axios from "axios";
 import tw from "twrnc"; // For Tailwind styles
 import { useNavigation } from "@react-navigation/native";
 
+
+
 const DriverHome = () => {
   const [rideRequests, setRideRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -46,7 +48,7 @@ const DriverHome = () => {
   };
 
   const handleRequestPress = (request) => {
-    console.log('Ride Request selected:', request); // Debugging to check the selected request
+    console.log("Ride Request selected:", request); // Debugging to check the selected request
     setSelectedRequest(request);
     setModalVisible(true);
   };
@@ -58,6 +60,34 @@ const DriverHome = () => {
         return;
       }
   
+      // Log the selected request to inspect the coordinates
+      console.log("Selected Request for Accepting Ride:", selectedRequest);
+  
+      // Geocode the pickup and destination locations using OpenStreetMap Nominatim
+      const getCoordinates = async (location) => {
+        try {
+          const response = await axios.get(
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`
+          );
+          if (response.data.length > 0) {
+            const { lat, lon } = response.data[0];
+            return { latitude: parseFloat(lat), longitude: parseFloat(lon) };
+          } else {
+            throw new Error(`No results found for location: ${location}`);
+          }
+        } catch (error) {
+          throw new Error(`Failed to fetch coordinates for ${location}: ${error.message}`);
+        }
+      };
+  
+      // Fetch pickup and destination coordinates
+      const pickupCoordinates = await getCoordinates(selectedRequest.pickup_location);
+      const destinationCoordinates = await getCoordinates(selectedRequest.destination_location);
+  
+      console.log("Pickup Coordinates:", pickupCoordinates);
+      console.log("Destination Coordinates:", destinationCoordinates);
+  
+      // Proceed with accepting the request if the coordinates are valid
       const response = await axios.post(
         `http://192.168.35.164:3000/api/ride-requests/${selectedRequest.id}/accept`,
         {
@@ -68,17 +98,11 @@ const DriverHome = () => {
   
       if (response.status === 200) {
         Alert.alert("Success", "Ride request accepted.");
-        
-        // Navigate to the RideMap screen with the ride details
+  
+        // Navigate to the RideMap screen with valid coordinates
         navigation.navigate("GoogleMapScreen", {
-          pickupLocation: {
-            latitude: selectedRequest.pickup_latitude,
-            longitude: selectedRequest.pickup_longitude,
-          },
-          destinationLocation: {
-            latitude: selectedRequest.destination_latitude,
-            longitude: selectedRequest.destination_longitude,
-          },
+          pickupLocation: pickupCoordinates,
+          destinationLocation: destinationCoordinates,
         });
       } else {
         Alert.alert("Error", "Failed to accept the ride request.");
@@ -87,6 +111,7 @@ const DriverHome = () => {
       Alert.alert("Error", `Failed to accept ride request. ${error.message}`);
     }
   };
+  
   
   const handleReject = async () => {
     console.log("Ride request rejected for:", selectedRequest); // Debugging rejected request

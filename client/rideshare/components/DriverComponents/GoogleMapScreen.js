@@ -1,97 +1,106 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, ActivityIndicator, StyleSheet, Alert } from "react-native";
 import * as Location from "expo-location";
-import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps"; 
+import MapView, { Marker, Polyline } from "react-native-maps";
 import { useRoute } from "@react-navigation/native";
+import Icon from 'react-native-vector-icons/FontAwesome'; // Import vector icons
+
+// Helper function to calculate distance using the Haversine formula
+const calculateDistance = (coord1, coord2) => {
+  const toRad = (value) => (value * Math.PI) / 180;
+
+  const lat1 = coord1.latitude;
+  const lon1 = coord1.longitude;
+  const lat2 = coord2.latitude;
+  const lon2 = coord2.longitude;
+
+  const R = 6371; // Radius of the Earth in kilometers
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c; // Distance in kilometers
+
+  return distance.toFixed(2); // Returns distance rounded to two decimal places
+};
 
 const RideMap = () => {
   const route = useRoute();
-  const { pickupLocation, destinationLocation } = route.params;
+  const { pickupLocation, destinationLocation } = route.params || {};
 
   const [driverLocation, setDriverLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [distanceToPickup, setDistanceToPickup] = useState(0);
-  const [distanceToDestination, setDistanceToDestination] = useState(0);
-  const [address, setAddress] = useState(""); // State to store the address
+  const [loading, setLoading] = useState(true);
+  const [distance, setDistance] = useState(null);
 
-  const getAddressFromCoordinates = async (lat, lng) => {
-    const apiKey = "AlzaSySYTQx58Zc8aD7Dp3WT0-nwAs9cFivaTkF"; // Replace with your GoMap API key
-    const url = `https://api.gomap.com/v1/geocode?lat=${lat}&lng=${lng}&key=${apiKey}`;
-
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      if (data.results && data.results.length > 0) {
-        setAddress(data.results[0].formatted_address);
-      } else {
-        setAddress("Address not found");
-      }
-    } catch (error) {
-      console.error("Error fetching address:", error);
-      setAddress("Failed to fetch address");
-    }
-  };
-
-  // Get driver's current location
   useEffect(() => {
-    (async () => {
+    const fetchDriverLocation = async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         setErrorMsg("Permission to access location was denied");
+        Alert.alert("Permission Denied", "Location access is required.");
         return;
       }
 
-      let location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
-      setDriverLocation({ latitude, longitude });
+      let location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      setDriverLocation({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+    };
 
-      // Get address for driver's location
-      await getAddressFromCoordinates(latitude, longitude);
-    })();
+    fetchDriverLocation();
   }, []);
 
   useEffect(() => {
-    if (driverLocation) {
-      setDistanceToPickup(getDistance(driverLocation, pickupLocation));
-      setDistanceToDestination(getDistance(pickupLocation, destinationLocation));
-    }
-  }, [driverLocation, pickupLocation, destinationLocation]);
+    if (pickupLocation && destinationLocation) {
+      const pickupLatitude = parseFloat(pickupLocation.latitude);
+      const pickupLongitude = parseFloat(pickupLocation.longitude);
+      const destinationLatitude = parseFloat(destinationLocation.latitude);
+      const destinationLongitude = parseFloat(destinationLocation.longitude);
 
-  const getDistance = (coords1, coords2) => {
-    const toRad = (value) => (value * Math.PI) / 180;
-    const R = 6371; // Radius of the Earth in km
-    const dLat = toRad(coords2.latitude - coords1.latitude);
-    const dLon = toRad(coords2.longitude - coords1.longitude);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(coords1.latitude)) *
-        Math.cos(toRad(coords2.latitude)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Distance in km
-  };
+      if (!isNaN(pickupLatitude) && !isNaN(pickupLongitude) && !isNaN(destinationLatitude) && !isNaN(destinationLongitude)) {
+        const calculatedDistance = calculateDistance(
+          { latitude: pickupLatitude, longitude: pickupLongitude },
+          { latitude: destinationLatitude, longitude: destinationLongitude }
+        );
+        setDistance(calculatedDistance);
+      } else {
+        setErrorMsg("Pickup or Destination location coordinates are invalid.");
+      }
+    } else {
+      setErrorMsg("Pickup and Destination locations are required.");
+    }
+  }, [pickupLocation, destinationLocation]);
+
+  useEffect(() => {
+    if (driverLocation && !errorMsg) {
+      setLoading(false);
+    }
+  }, [driverLocation, errorMsg]);
 
   if (errorMsg) {
-    return <Text>{errorMsg}</Text>;
+    return (
+      <View style={styles.errorContainer}>
+        <Text>{errorMsg}</Text>
+      </View>
+    );
   }
 
-  if (!driverLocation) {
-    return <ActivityIndicator size="large" color="#0000ff" />;
-  }
-
-  // Ensure pickup and destination locations are valid
-  if (!pickupLocation || !destinationLocation) {
-    return <Text>Error: Invalid pickup or destination location</Text>;
+  if (loading || !driverLocation || !pickupLocation || !destinationLocation) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text>Loading map and locations...</Text>
+      </View>
+    );
   }
 
   return (
     <View style={styles.container}>
       <MapView
-        provider={PROVIDER_DEFAULT}
         style={styles.map}
         initialRegion={{
           latitude: driverLocation.latitude,
@@ -100,29 +109,43 @@ const RideMap = () => {
           longitudeDelta: 0.05,
         }}
       >
-        <Marker
-          coordinate={driverLocation}
-          title="Driver Location"
-        />
-        <Marker
-          coordinate={pickupLocation}
-          title="Pickup Location"
-          pinColor="green"
-        />
-        <Marker
-          coordinate={destinationLocation}
-          title="Destination Location"
-          pinColor="red"
-        />
+        {/* Marker for driver's location with car icon */}
+        <Marker coordinate={driverLocation} title="Driver Location">
+          <Icon name="car" size={30} color="blue" />
+        </Marker>
+
+        {/* Marker for pickup location */}
+        {pickupLocation && pickupLocation.latitude && pickupLocation.longitude && (
+          <Marker coordinate={pickupLocation} title="Pickup Location" pinColor="green" />
+        )}
+
+        {/* Marker for destination location */}
+        {destinationLocation && destinationLocation.latitude && destinationLocation.longitude && (
+          <Marker coordinate={destinationLocation} title="Destination Location" pinColor="red" />
+        )}
+
+        {/* Draw a route line between pickup and destination in red */}
+        {pickupLocation && destinationLocation && (
+          <Polyline
+            coordinates={[pickupLocation, destinationLocation]}
+            strokeColor="red" // Line color
+            strokeWidth={3} // Line width
+          />
+        )}
+
+        {/* Draw a route line between driver and destination in red */}
+        {driverLocation && destinationLocation && (
+          <Polyline
+            coordinates={[driverLocation, destinationLocation]}
+            strokeColor="red" // Line color for driver to destination
+            strokeWidth={3} // Line width
+          />
+        )}
       </MapView>
 
-      <View style={styles.distanceContainer}>
-        <Text>Distance to Pickup: {distanceToPickup.toFixed(2)} km</Text>
-        <Text>Distance to Destination: {distanceToDestination.toFixed(2)} km</Text>
-      </View>
-
-      <View style={styles.addressContainer}>
-        <Text>Driver's Address: {address}</Text>
+      <View style={styles.infoContainer}>
+        
+      {distance && <Text style={styles.infoText}>Distance: {distance} km</Text>}
       </View>
     </View>
   );
@@ -135,21 +158,30 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  distanceContainer: {
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  infoContainer: {
     padding: 10,
-    backgroundColor: 'white',
-    position: 'absolute',
+    backgroundColor: "white",
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
+    borderTopWidth: 1,
+    borderTopColor: "#ccc",
+    
   },
-  addressContainer: {
-    padding: 10,
-    backgroundColor: 'white',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+  infoText: {
+    fontWeight: "bold", // Make text bold
+    textAlign: "center", // Center align text
   },
 });
 

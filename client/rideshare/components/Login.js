@@ -5,8 +5,10 @@ import { Checkbox } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios"; // Import axios
 import tw from "twrnc";
+import { useUser } from './UserContext'; // Import useUser
 
 const Login = () => {
+  const { setUserId } = useUser(); // Get setUserId from context
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -21,15 +23,16 @@ const Login = () => {
     try {
       const response = await axios.get('http://192.168.35.164:3000/api/login', {
         params: {
-          email,    // Ensure email is fetched from state
-          password, // Ensure password is fetched from state
+          email,
+          password,
         },
       });
-  
+
       if (response.status === 200) {
         console.log('Login successful:', response.data);
-        // Navigate to the next screen after successful login
-        navigation.navigate("LocationScreen"); // Replace 'LocationScreen' with your screen
+        const userId = response.data.user.id; // Extract user ID
+        setUserId(userId); // Set the user ID in context
+        navigation.navigate("LocationScreen"); // Navigate to the next screen
       }
     } catch (error) {
       if (error.response) {

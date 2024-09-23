@@ -1,15 +1,36 @@
+import React, { useEffect, useState } from "react";
+import { Image, Text, TextInput, TouchableOpacity, View, Alert } from "react-native";
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
-import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 import tw from "twrnc";
-//import { Picker } from "@react-native-picker/picker"; // Import Picker
+import axios from "axios";
+import { useUser } from './UserContext'; // Import useUser from UserContext
 
 const ProfilePage = ({ navigation }) => {
-  const [userName, setUserName] = useState("Elan");
-  const [email, setEmail] = useState("example@email.com");
+  const { userId } = useUser(); // Get userId from UserContext
+  const [userName, setUserName] = useState("");
+  const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
-  const [gender, setGender] = useState("Gender"); // Default gender is set to 'Male'
-  const [showGenderPicker, setShowGenderPicker] = useState(false); // State to toggle picker visibility
+  const [gender, setGender] = useState("");
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await axios.get(`http://192.168.35.164:3000/api/users/${userId}`);
+        const { username, email, phonenumber, gender } = response.data; // Adjust property names as needed
+        setUserName(username);
+        setEmail(email);
+        setMobile(phonenumber);
+        setGender(gender);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        Alert.alert("Error", "Could not load user data");
+      }
+    };
+
+    if (userId) {
+      fetchUserData();
+    }
+  }, [userId]);
 
   return (
     <View style={tw`flex-1 bg-white`}>
@@ -50,13 +71,9 @@ const ProfilePage = ({ navigation }) => {
         />
 
         {/* Mobile Input with Country Flag */}
-        <View
-          style={tw`flex-row items-center border border-gray-300 p-3 rounded mb-4`}
-        >
+        <View style={tw`flex-row items-center border border-gray-300 p-3 rounded mb-4`}>
           <Image
-            source={{
-              uri: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png",
-            }}
+            source={{ uri: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png" }}
             style={tw`w-6 h-4 mr-2`}
           />
           <Text style={tw`mr-2`}>+91</Text>
@@ -69,56 +86,27 @@ const ProfilePage = ({ navigation }) => {
           />
         </View>
 
-        {/* Gender Dropdown */}
-        <View
-          style={tw`border border-gray-300 p-3 rounded flex-row justify-between items-center mb-4`}
-        >
+        {/* Gender Display */}
+        <View style={tw`border border-gray-300 p-3 rounded mb-4`}>
           <Text>{gender}</Text>
-          <Ionicons
-            name="chevron-down"
-            size={24}
-            color="black"
-            onPress={() => setShowGenderPicker(!showGenderPicker)}
-          />
         </View>
-
-        {showGenderPicker && (
-          <Picker
-            selectedValue={gender}
-            onValueChange={(itemValue) => {
-              setGender(itemValue);
-              setShowGenderPicker(false); // Close picker after selection
-            }}
-            style={tw`border border-gray-300 rounded mb-4`}
-          >
-            <Picker.Item label="Male" value="Male" />
-            <Picker.Item label="Female" value="Female" />
-            <Picker.Item label="Other" value="Other" />
-          </Picker>
-        )}
 
         {/* Buttons */}
         <View style={tw`flex justify-center items-center`}>
-          <TouchableOpacity
-            style={[tw`bg-blue-500 p-4 rounded mb-3`, { width: "50%" }]}
-          >
+          <TouchableOpacity style={[tw`bg-blue-500 p-4 rounded mb-3`, { width: "50%" }]}>
             <Text style={tw`text-white text-center`}>History</Text>
           </TouchableOpacity>
         </View>
 
         <View style={tw`flex justify-center items-center`}>
-          <TouchableOpacity
-            style={[tw`bg-red-700 p-4 rounded mb-3`, { width: "50%" }]}
-          >
+          <TouchableOpacity style={[tw`bg-red-700 p-4 rounded mb-3`, { width: "50%" }]}>
             <Text style={tw`text-white text-center`}>Logout</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Bottom Navigation */}
-      <View
-        style={tw`flex-row justify-between items-center bg-gray-200 p-4 absolute bottom-0 w-full`}
-      >
+      <View style={tw`flex-row justify-between items-center bg-gray-200 p-4 absolute bottom-0 w-full`}>
         <TouchableOpacity onPress={() => navigation.navigate("Home")}>
           <FontAwesome5 name="home" size={24} color="gray" />
         </TouchableOpacity>

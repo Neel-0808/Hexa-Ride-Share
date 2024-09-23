@@ -44,7 +44,7 @@ const dbQuery = (sql, params = []) => {
 
 // GET request to login
 app.get('/api/login', async (req, res) => {
-  const { email, password } = req.query;
+  const { email, password } = req.query; // Make sure you're using req.query for GET requests
 
   try {
     const rows = await dbQuery('SELECT * FROM users WHERE email = ?', [email]);
@@ -59,11 +59,25 @@ app.get('/api/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    res.status(200).json({ message: 'Login successful' });
+    res.status(200).json({ user }); // Send back the user data
   } catch (error) {
     console.error('Error during login:', error);
     res.status(500).json({ message: 'Server error during login' });
   }
+});
+
+app.get("/api/users/:id", (req, res) => {
+  const userId = req.params.id;
+  db.query("SELECT * FROM users WHERE id = ?", [userId], (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (results.length > 0) {
+      res.json(results[0]);
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  });
 });
 
 // POST request to insert a new ride
