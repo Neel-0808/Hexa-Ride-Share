@@ -3,9 +3,9 @@ const mysql = require('mysql');
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const axios = require('axios'); 
+const axios = require('axios');
 const { Expo } = require('expo-server-sdk');
-const expo = new Expo();// To send notifications
+const expo = new Expo(); // To send notifications
 
 dotenv.config();
 
@@ -29,170 +29,166 @@ db.connect((err) => {
   }
 });
 
+// Utility function to convert MySQL query to promises
+const dbQuery = (sql, params = []) => {
+  return new Promise((resolve, reject) => {
+    db.query(sql, params, (err, result) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+};
+
+// GET request to login
+app.get('/api/login', async (req, res) => {
+  const { email, password } = req.query;
+
+  try {
+    const rows = await dbQuery('SELECT * FROM users WHERE email = ?', [email]);
+
+    if (rows.length === 0) {
+      return res.status(400).json({ message: 'User not found' });
+    }
+
+    const user = rows[0];
+
+    if (password !== user.password) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    res.status(200).json({ message: 'Login successful' });
+  } catch (error) {
+    console.error('Error during login:', error);
+    res.status(500).json({ message: 'Server error during login' });
+  }
+});
+
 // POST request to insert a new ride
-// POST request to insert a new ride
-app.post('/api/rides', (req, res) => {
+app.post('/api/rides', async (req, res) => {
   const { driver_name, vehicle_info, origin, destination, available_seats } = req.body;
 
-  // SQL query to insert new ride into the rides table
-  const sqlQuery = 'INSERT INTO rides (driver_name, vehicle_info, origin, destination, available_seats) VALUES (?, ?, ?, ?, ?)';
-  const rideData = [driver_name, vehicle_info, origin, destination, available_seats];
-
-  db.query(sqlQuery, rideData, (err, result) => {
-    if (err) {
-      console.error('Error inserting new ride:', err);
-      res.status(500).json({ error: 'Failed to insert new ride' });
-    } else {
-      res.status(201).json({
-        message: 'Ride added successfully',
-        rideId: result.insertId, // Returns the ID of the newly created ride
-      });
-    }
-  });
+  try {
+    const result = await dbQuery(
+      'INSERT INTO rides (driver_name, vehicle_info, origin, destination, available_seats) VALUES (?, ?, ?, ?, ?)',
+      [driver_name, vehicle_info, origin, destination, available_seats]
+    );
+    res.status(201).json({ message: 'Ride added successfully', rideId: result.insertId });
+  } catch (error) {
+    console.error('Error inserting new ride:', error);
+    res.status(500).json({ error: 'Failed to insert new ride' });
+  }
 });
 
 // GET request to fetch all available rides
-app.get('/api/rides', (req, res) => {
-  const sqlQuery = 'SELECT * FROM rides';
-  db.query(sqlQuery, (err, results) => {
-    if (err) {
-      console.error('Error fetching rides:', err);
-      res.status(500).json({ error: 'Failed to fetch rides' });
-    } else {
-      res.json(results);
-    }
-  });
+app.get('/api/rides', async (req, res) => {
+  try {
+    const results = await dbQuery('SELECT * FROM rides');
+    res.json(results);
+  } catch (error) {
+    console.error('Error fetching rides:', error);
+    res.status(500).json({ error: 'Failed to fetch rides' });
+  }
 });
 
-// POST request for the driver to create a new ride
-// POST request for the rider to request a ride
-app.post('/api/ride-requests', (req, res) => {
-  const { rider_name, gender, pickup_location, destination_location, contact, push_token } = req.body; // Ensure push_token is included
+// POST request to create a new ride request
+app.post('/api/ride-requests', async (req, res) => {
+  const { rider_name, gender, pickup_location, destination_location, contact, push_token } = req.body;
 
   if (!rider_name || !gender || !pickup_location || !destination_location || !contact || !push_token) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const sqlInsert = 'INSERT INTO ride_requests (rider_name, gender, pickup_location, destination_location, contact, push_token) VALUES (?, ?, ?, ?, ?, ?)';
-  
-  db.query(sqlInsert, [rider_name, gender, pickup_location, destination_location, contact, push_token], (err, result) => {
-    if (err) {
-      console.error('Error inserting ride request:', err);
-      return res.status(500).json({ error: 'Failed to submit ride request' });
-    }
-    
+  try {
+    const result = await dbQuery(
+      'INSERT INTO ride_requests (rider_name, gender, pickup_location, destination_location, contact, push_token) VALUES (?, ?, ?, ?, ?, ?)',
+      [rider_name, gender, pickup_location, destination_location, contact, push_token]
+    );
     res.status(201).json({ message: 'Ride request created successfully', requestId: result.insertId });
-  });
+  } catch (error) {
+    console.error('Error inserting ride request:', error);
+    res.status(500).json({ error: 'Failed to submit ride request' });
+  }
 });
 
-
-
-
-
 // GET request for the driver to view ride requests
-app.get('/api/ride-requests', (req, res) => {
-  const sqlQuery = 'SELECT id ,rider_name, gender, pickup_location, destination_location, contact FROM ride_requests';
-  db.query(sqlQuery, (err, results) => {
-    if (err) {
-      console.error('Error fetching ride requests:', err);
-      res.status(500).json({ error: 'Failed to fetch ride requests' });
-    } else {
-      res.json(results);
-    }
-  });
+app.get('/api/ride-requests', async (req, res) => {
+  try {
+    const results = await dbQuery('SELECT id, rider_name, gender, pickup_location, destination_location, contact FROM ride_requests');
+    res.json(results);
+  } catch (error) {
+    console.error('Error fetching ride requests:', error);
+    res.status(500).json({ error: 'Failed to fetch ride requests' });
+  }
 });
 
 // POST request to accept a ride and send a notification to the rider
-// Required to send notifications
-
-
-// Accept ride request
 app.post('/api/ride-requests/:id/accept', async (req, res) => {
   const requestId = req.params.id;
-  console.log("Searching for ride request with ID:", requestId); 
 
   try {
     // Find the rider's request and Expo push token from DB
-    const sqlQuery = 'SELECT push_token FROM ride_requests WHERE id = ?';
-    db.query(sqlQuery, [requestId], async (err, result) => {
-      if (err || result.length === 0) {
-        return res.status(404).json({ error: 'Ride request not found' });
-      }
+    const result = await dbQuery('SELECT push_token FROM ride_requests WHERE id = ?', [requestId]);
 
-      const riderExpoPushToken = result[0].push_token;
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Ride request not found' });
+    }
 
-      // Update ride status to "Accepted"
-      const sqlUpdate = 'UPDATE ride_requests SET status = "Accepted" WHERE id = ?';
-      db.query(sqlUpdate, [requestId], async (err, result) => {
-        if (err) {
-          return res.status(500).json({ error: 'Failed to accept the ride' });
-        }
+    const riderExpoPushToken = result[0].push_token;
 
-        // Ride accepted successfully, now send the notification
-        if (Expo.isExpoPushToken(riderExpoPushToken)) {
-          const messages = [];
-          messages.push({
-            to: riderExpoPushToken,
-            sound: 'default',
-            body: 'Your ride has been accepted!',
-            data: { requestId: requestId },
-          });
+    // Update ride status to "Accepted"
+    await dbQuery('UPDATE ride_requests SET status = "Accepted" WHERE id = ?', [requestId]);
 
-          // Send the push notification using Expo SDK
-          try {
-            let tickets = await expo.sendPushNotificationsAsync(messages);
-            console.log('Notification tickets:', tickets); 
-          } catch (notificationError) {
-            console.error('Error sending notification:', notificationError);
-            return res.status(500).json({ error: 'Failed to send notification' });
-          }
-        } else {
-          console.error('Invalid Expo Push Token:', riderExpoPushToken);
-          return res.status(400).json({ error: 'Invalid Expo Push Token' });
-        }
+    // Send the push notification using Expo SDK
+    if (Expo.isExpoPushToken(riderExpoPushToken)) {
+      const messages = [{
+        to: riderExpoPushToken,
+        sound: 'default',
+        body: 'Your ride has been accepted!',
+        data: { requestId },
+      }];
 
-        // Respond with success
+      try {
+        let tickets = await expo.sendPushNotificationsAsync(messages);
+        console.log('Notification tickets:', tickets);
         res.json({ message: 'Ride accepted and notification sent' });
-      });
-    });
+      } catch (notificationError) {
+        console.error('Error sending notification:', notificationError);
+        res.status(500).json({ error: 'Failed to send notification' });
+      }
+    } else {
+      console.error('Invalid Expo Push Token:', riderExpoPushToken);
+      res.status(400).json({ error: 'Invalid Expo Push Token' });
+    }
   } catch (error) {
     console.error('Error accepting ride:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Assuming you are using Express and MySQL
-
-// Get ride status by requestId
-// Endpoint to get the status of a ride request by requestId
-app.get('/api/ride-requests/status', (req, res) => {
+// GET request to check the status of a ride request by requestId
+app.get('/api/ride-requests/status', async (req, res) => {
   const { requestId } = req.query;
 
-  // Ensure the requestId is provided
   if (!requestId) {
     return res.status(400).json({ error: 'Missing requestId parameter' });
   }
 
-  // SQL query to get the ride status based on the requestId
-  const sqlQuery = 'SELECT status FROM ride_requests WHERE id = ?';
+  try {
+    const result = await dbQuery('SELECT status FROM ride_requests WHERE id = ?', [requestId]);
 
-  db.query(sqlQuery, [requestId], (err, result) => {
-    if (err) {
-      console.error('Error retrieving ride status:', err);
-      return res.status(500).json({ error: 'Failed to retrieve ride status' });
-    }
-
-    // Check if the ride request exists
     if (result.length === 0) {
       return res.status(404).json({ error: 'Ride request not found' });
     }
 
-    // Send the ride status back to the client
-    const rideStatus = result[0].status;
-    res.json({ status: rideStatus });
-  });
+    res.json({ status: result[0].status });
+  } catch (error) {
+    console.error('Error retrieving ride status:', error);
+    res.status(500).json({ error: 'Failed to retrieve ride status' });
+  }
 });
-
 
 // Start the server
 const port = process.env.PORT || 3000;
