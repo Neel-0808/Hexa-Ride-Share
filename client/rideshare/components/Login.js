@@ -1,18 +1,28 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  Modal,
+} from "react-native";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { Checkbox } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
-import axios from "axios"; // Import axios
+import axios from "axios";
 import tw from "twrnc";
-import { useUser } from './UserContext'; // Import useUser
+import { useUser } from "./UserContext";
+import LottieView from "lottie-react-native";
 
 const Login = () => {
-  const { setUserId } = useUser(); // Get setUserId from context
+  const { setUserId } = useUser();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [loginStatus, setLoginStatus] = useState(null);
+  const [loginMessage, setLoginMessage] = useState(""); // State for login message
   const navigation = useNavigation();
 
   const togglePasswordVisibility = () => {
@@ -29,32 +39,69 @@ const Login = () => {
       });
 
       if (response.status === 200) {
-        console.log('Login successful:', response.data);
-        const userId = response.data.user.id; // Extract user ID
-        setUserId(userId); // Set the user ID in context
-        navigation.navigate("LocationScreen"); // Navigate to the next screen
+        console.log("Login successful:", response.data);
+        const userId = response.data.user.id;
+        setUserId(userId);
+        setLoginStatus("success");
+        setLoginMessage("Login successful! Redirecting...");
+        setTimeout(() => {
+          setLoginStatus(null);
+          navigation.navigate("LocationScreen");
+        }, 1500);
       }
     } catch (error) {
       if (error.response) {
-        console.error('Error:', error.response.data.message);
-        alert(error.response.data.message); // Show error message to the user
+        console.error("Error:", error.response.data.message);
+        setLoginStatus("failure");
+        setLoginMessage(error.response.data.message);
+        setTimeout(() => setLoginStatus(null), 1500);
       } else {
-        console.error('Unexpected error:', error);
-        alert('An unexpected error occurred.');
+        console.error("Unexpected error:", error);
+        setLoginStatus("failure");
+        setLoginMessage("An unexpected error occurred.");
+        setTimeout(() => setLoginStatus(null), 1500);
       }
     }
   };
 
   const handleLogin = () => {
     if (email && password) {
-      fetchUserCredentials(); // Call fetch function to get data from backend
+      fetchUserCredentials();
     } else {
-      alert("Please enter your credentials");
+      setLoginStatus("failure");
+      setLoginMessage("Please enter your credentials");
+      setTimeout(() => setLoginStatus(null), 1500);
     }
   };
 
   return (
     <View style={tw`flex-1`}>
+      {loginStatus && (
+        <Modal
+          transparent={true}
+          animationType="slide"
+          visible={true}
+          onRequestClose={() => setLoginStatus(null)}
+        >
+          <View
+            style={tw`flex-1 justify-center items-center bg-black bg-opacity-50`}
+          >
+            <View style={tw`bg-white p-6 rounded-lg`}>
+              <LottieView
+                source={
+                  loginStatus === "success"
+                    ? require("../assets/login_success.json")
+                    : require("../assets/login_fail.json")
+                }
+                autoPlay
+                loop={false}
+                style={tw`w-60 h-60`}
+              />
+              <Text style={tw`text-center text-lg mt-4`}>{loginMessage}</Text>
+            </View>
+          </View>
+        </Modal>
+      )}
       {/* Blue Background Section */}
       <View
         style={[

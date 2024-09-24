@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Alert, Text, TouchableOpacity, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import tw from "twrnc"; // Tailwind import
+import LottieView from "lottie-react-native"; // Import LottieView
 
 const LocationScreen = ({ navigation }) => {
   const [location, setLocation] = useState(null);
@@ -14,7 +15,10 @@ const LocationScreen = ({ navigation }) => {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
           setErrorMsg("Permission to access location was denied");
-          Alert.alert("Location Error", "Permission to access location was denied");
+          Alert.alert(
+            "Location Error",
+            "Permission to access location was denied"
+          );
           return;
         }
         const { coords } = await Location.getCurrentPositionAsync({
@@ -37,8 +41,14 @@ const LocationScreen = ({ navigation }) => {
 
   if (!location && !errorMsg) {
     return (
-      <View style={tw`flex-1 items-center justify-center text-lg`}>
-        <Text>Fetching your location...</Text>
+      <View style={tw`flex-1 items-center justify-center`}>
+        <Text style={tw`mb-2 text-lg`}>Fetching your location...</Text>
+        <LottieView
+          source={require("../assets/location_ani.json")} // Replace with the path to your animation file
+          autoPlay
+          loop
+          style={tw`w-80 h-80`} // Adjust the size as needed
+        />
       </View>
     );
   }
@@ -71,9 +81,7 @@ const LocationScreen = ({ navigation }) => {
           style={tw`bg-blue-600 rounded-lg py-3 items-center`}
           onPress={handleNext}
         >
-          <Text style={tw`text-white text-lg font-bold`}>
-            Next
-          </Text>
+          <Text style={tw`text-white text-lg font-bold`}>Next</Text>
         </TouchableOpacity>
       </View>
     </View>
