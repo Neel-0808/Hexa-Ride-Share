@@ -118,7 +118,14 @@ app.post("/api/rides", async (req, res) => {
 // GET request to fetch all available rides
 app.get("/api/rides", async (req, res) => {
   try {
-    const results = await dbQuery("SELECT * FROM rides");
+    const currentDateTime = new Date();
+
+    // Delete past rides before fetching the remaining ones
+    await db.query(
+      `DELETE FROM rides WHERE ride_date < CURDATE() OR (ride_date = CURDATE() AND ride_time < CURTIME())`
+    );
+
+    const results = await dbQuery('SELECT * FROM rides');
     res.json(results);
   } catch (error) {
     console.error("Error fetching rides:", error);

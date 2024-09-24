@@ -33,7 +33,7 @@ const RideShareApp = () => {
     const fetchAllRides = async () => {
       try {
         const response = await axios.get(
-          "http://192.168.29.122:3000/api/rides"
+          "http://192.168.35.164:3000/api/rides"
         );
         const sortedRides = response.data.sort(
           (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
@@ -61,7 +61,7 @@ const RideShareApp = () => {
       const formattedDate = date.toISOString().split("T")[0];
       const formattedTime = time.toTimeString().split(" ")[0];
 
-      const response = await axios.get("http://192.168.29.122:3000/api/rides", {
+      const response = await axios.get("http://192.168.35.164:3000/api/rides", {
         params: {
           date: formattedDate,
           time: formattedTime,
@@ -105,6 +105,46 @@ const RideShareApp = () => {
     const currentTime = selectedTime || time;
     setShowTimePicker(false);
     setTime(currentTime);
+  };
+
+  const handleSelectOnMap = () => {
+    navigation.navigate("MapScreen", {
+      setLocation: (pickup, dest) => {
+        setPickupLocation(pickup);
+        setDestination(dest);
+      },
+    });
+  };
+
+  const handleRideRequest = async () => {
+    try {
+      const response = await axios.get(
+        "http://192.168.35.164:3000/api/ride-requests"
+      );
+      console.log("Ride Requests Data:", response.data);
+
+      if (Array.isArray(response.data) && response.data.length > 0) {
+        const requestId = response.data[0].id;
+
+        if (requestId) {
+          console.log(
+            "Navigating to NotificationScreen with requestId:",
+            requestId
+          );
+          navigation.navigate("NotificationScreen", { requestId });
+        } else {
+          Alert.alert("Error", "No ride request ID found.");
+        }
+      } else {
+        Alert.alert("Error", "No ride requests available.");
+      }
+    } catch (error) {
+      console.log("Error fetching ride requests:", error.message);
+      Alert.alert(
+        "Error",
+        `Failed to fetch ride requests. Error: ${error.message}`
+      );
+    }
   };
 
   const handleRidePress = (ride) => {
