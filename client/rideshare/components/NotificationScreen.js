@@ -1,48 +1,72 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, SafeAreaView, ActivityIndicator, Alert, TouchableOpacity } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import {
+  View,
+  Text,
+  SafeAreaView,
+  ActivityIndicator,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native"; // Importing useRoute to get params
 import axios from "axios";
-import tw from "twrnc"; 
-import { useUser } from "./UserContext";// Tailwind CSS for styling
+import tw from "twrnc"; // Tailwind CSS for styling
 
-const NotificationScreen = ({ route }) => {
-  const { requestId } = route.params; // Expecting requestId to be passed
+const NotificationScreen = () => {
+  const route = useRoute(); // Access navigation parameters
+  const navigation = useNavigation(); // Navigation object
+
+  const [requestId, setRequestId] = useState(null); // For storing the requestId
   const [rideStatus, setRideStatus] = useState("Pending");
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const navigation = useNavigation();
 
   // Fetch ride requests and find the selected request
   useEffect(() => {
+    if (route.params && route.params.requestId) {
+      setRequestId(route.params.requestId); // Set requestId from params
+    } else {
+      console.error("RequestId is undefined or missing");
+      Alert.alert("Error", "RequestId is missing");
+      return;
+    }
+
     const fetchRideRequests = async () => {
       try {
         const response = await axios.get(
-          "http://192.168.35.164:3000/api/ride-requests"
+          "http://192.168.29.122:3000/api/ride-requests"
         );
-        const request = response.data.find(req => req.id === requestId);
-        setSelectedRequest(request);
+        const request = response.data.find((req) => req.id === requestId);
+        if (request) {
+          setSelectedRequest(request);
+        } else {
+          Alert.alert("Error", "Ride request not found");
+        }
         setIsLoading(false);
       } catch (error) {
         console.error("Error fetching ride requests:", error.message);
-        Alert.alert("Error", `Failed to fetch ride requests. Error: ${error.message}`);
+        Alert.alert(
+          "Error",
+          `Failed to fetch ride requests. Error: ${error.message}`
+        );
         setIsLoading(false);
       }
     };
 
-    fetchRideRequests();
-  }, [requestId]);
+    if (requestId) {
+      fetchRideRequests();
+    }
+  }, [requestId, route.params]);
 
   // Polling to check ride status
   useEffect(() => {
     if (!requestId) {
-      console.error("RequestId is undefined or null, cannot fetch ride status.");
       return;
     }
 
     const fetchRideStatus = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.35.164:3000/api/ride-requests/status?requestId=${requestId}`
+          `http://192.168.29.122:3000/api/ride-requests/status?requestId=${requestId}`
         );
         if (response.data && response.data.status) {
           setRideStatus(response.data.status);
@@ -51,7 +75,10 @@ const NotificationScreen = ({ route }) => {
         }
       } catch (error) {
         console.error("Error fetching ride status:", error);
-        Alert.alert("Error", `Failed to fetch ride status. Error: ${error.message}`);
+        Alert.alert(
+          "Error",
+          `Failed to fetch ride status. Error: ${error.message}`
+        );
       }
     };
 
@@ -65,10 +92,13 @@ const NotificationScreen = ({ route }) => {
     return () => clearInterval(intervalId);
   }, [requestId]);
 
+  // Fetch coordinates based on the location name
   const getCoordinates = async (location) => {
     try {
       const response = await axios.get(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+          location
+        )}&format=json&limit=1`
       );
       if (response.data.length > 0) {
         const { lat, lon } = response.data[0];
@@ -77,19 +107,30 @@ const NotificationScreen = ({ route }) => {
         throw new Error(`No results found for location: ${location}`);
       }
     } catch (error) {
-      throw new Error(`Failed to fetch coordinates for ${location}: ${error.message}`);
+      throw new Error(
+        `Failed to fetch coordinates for ${location}: ${error.message}`
+      );
     }
   };
 
+  // Handle viewing the map based on pickup and destination locations
   const handleViewOnMap = async () => {
     try {
-      if (!selectedRequest || !selectedRequest.pickup_location || !selectedRequest.destination_location) {
+      if (
+        !selectedRequest ||
+        !selectedRequest.pickup_location ||
+        !selectedRequest.destination_location
+      ) {
         throw new Error("Pickup and destination locations are required.");
       }
 
-      const pickupCoordinates = await getCoordinates(selectedRequest.pickup_location);
-      const destinationCoordinates = await getCoordinates(selectedRequest.destination_location);
-      
+      const pickupCoordinates = await getCoordinates(
+        selectedRequest.pickup_location
+      );
+      const destinationCoordinates = await getCoordinates(
+        selectedRequest.destination_location
+      );
+
       console.log("Pickup Coordinates:", pickupCoordinates);
       console.log("Destination Coordinates:", destinationCoordinates);
 
@@ -121,9 +162,9 @@ const NotificationScreen = ({ route }) => {
               Driver has accepted the ride!
             </Text>
           )}
-          
+
           {/* Button to view on map */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={tw`mt-6 bg-blue-500 rounded-full px-4 py-2`}
             onPress={handleViewOnMap}
           >

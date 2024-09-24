@@ -66,7 +66,6 @@ app.get("/api/login", async (req, res) => {
   }
 });
 
-// GET request to fetch user details
 app.get("/api/users/:id", (req, res) => {
   const userId = req.params.id;
   db.query("SELECT * FROM users WHERE id = ?", [userId], (err, results) => {
@@ -95,7 +94,7 @@ app.post("/api/rides", async (req, res) => {
 
   try {
     const result = await dbQuery(
-      "INSERT INTO rides (driver_name, vehicle_info, origin, destination, available_seats, ride_time, ride_date) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO rides (driver_name, vehicle_info, origin, destination, available_seats, ride_time, ride_date) VALUES (?,?,?,?,?,?,?)",
       [
         driver_name,
         vehicle_info,
@@ -118,14 +117,12 @@ app.post("/api/rides", async (req, res) => {
 // GET request to fetch all available rides
 app.get("/api/rides", async (req, res) => {
   try {
-    const currentDateTime = new Date();
-
     // Delete past rides before fetching the remaining ones
-    await db.query(
+    await dbQuery(
       `DELETE FROM rides WHERE ride_date < CURDATE() OR (ride_date = CURDATE() AND ride_time < CURTIME())`
     );
 
-    const results = await dbQuery('SELECT * FROM rides');
+    const results = await dbQuery("SELECT * FROM rides");
     res.json(results);
   } catch (error) {
     console.error("Error fetching rides:", error);
@@ -193,20 +190,23 @@ app.get("/api/ride-requests", async (req, res) => {
 });
 
 // POST request to accept a ride and send a notification to the rider
-app.post("/api/ride-requests/:id/accept", async (req, res) => {
-  const requestId = req.params.id;
+app.post("/api/ride-requests/:userId/accept", async (req, res) => {
+  const userId = req.params.userId; // Extract userId from URL params
 
   try {
-    // Find the rider's request and Expo push token from DB
+    // Find the rider's request and Expo push token from DB based on userId
     const result = await dbQuery(
-      "SELECT push_token FROM ride_requests WHERE id = ?",
-      [requestId]
+      'SELECT id, push_token FROM ride_requests WHERE user_id = ? AND status = "Pending"',
+      [userId]
     );
 
     if (result.length === 0) {
-      return res.status(404).json({ error: "Ride request not found" });
+      return res
+        .status(404)
+        .json({ error: "No pending ride request found for this user" });
     }
 
+    const requestId = result[0].id; // Get the ride request ID
     const riderExpoPushToken = result[0].push_token;
 
     // Update ride status to "Accepted"
