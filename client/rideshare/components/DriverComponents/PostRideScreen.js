@@ -14,12 +14,13 @@ import {
   View,
 } from "react-native";
 import tw from "twrnc"; // For Tailwind styles
-import io from "socket.io-client";
+import { useUser } from "../UserContext";
 
 // Replace with your actual backend server IP
-const SOCKET_SERVER_URL = "http://192.168.x.x:3000"; // e.g., "http://192.168.1.10:3000"
+ // e.g., "http://192.168.1.10:3000"
 
 const PostRideScreen = () => {
+  const { userId } = useUser();
   const [DriverName , setDriverName] = useState("")
   const [pickupLocation, setPickupLocation] = useState("");
   const [destination, setDestination] = useState("");
@@ -34,13 +35,23 @@ const PostRideScreen = () => {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    // Initialize Socket.IO connection
-    const newSocket = io(SOCKET_SERVER_URL);
-    setSocket(newSocket);
+    const fetchUserDetails = async () => {
+      try {
+        const response = await axios.get(
+          `http://192.168.35.164:3000/api/users/${userId}`
+        );
+        const user = response.data;
+        setDriverName(user.username); // Assuming 'username' field exists in user table
+        // Assuming 'phonenumber' field exists in user table
+      } catch (error) {
+        console.error("Error fetching user details:", error);
+        Alert.alert("Error", "Could not fetch user details.");
+      }
+    };
 
-    // Cleanup Socket.IO connection on unmount
-    return () => newSocket.disconnect();
-  }, []);
+    fetchUserDetails();
+  }, [userId]);
+
 
   const onDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
@@ -74,10 +85,23 @@ const PostRideScreen = () => {
       Alert.alert("Error", "Please fill all the fields.");
       return;
     }
-
+  
+    // Combine selected date and time into a single Date object
+    const selectedDateTime = new Date(date);
+    selectedDateTime.setHours(time.getHours(), time.getMinutes(), time.getSeconds());
+  
+    // Get current date and time
+    const currentDateTime = new Date();
+  
+    // Check if the selected date and time are in the past
+    if (selectedDateTime < currentDateTime) {
+      Alert.alert("Error", "You cannot post a ride in the past. Please select a valid date and time.");
+      return;
+    }
+  
     // Prepare ride details
     const rideDetails = {
-      driver_name: DriverName, // Replace with actual driver name, possibly from user context
+      driver_name: DriverName, 
       vehicle_info: `${carName} (${carNumber})`,
       origin: pickupLocation,
       destination: destination,
@@ -85,22 +109,20 @@ const PostRideScreen = () => {
       ride_date: date.toLocaleDateString('en-CA'), // Format date as YYYY-MM-DD
       ride_time: time.toLocaleTimeString('en-CA', { hour12: false }),
     };
-
+  
     try {
-      // Replace with your actual backend server IP
-      const BACKEND_URL = "http://192.168.29.122:3000"; // e.g., "http://192.168.1.10:3000"
-
+      const BACKEND_URL = "http://192.168.35.164:3000"; 
+  
       // Send POST request to create a new ride
       const response = await axios.post(`${BACKEND_URL}/api/rides`, rideDetails);
-
+  
       if (response.status === 201) {
         Alert.alert("Success", "Ride has been posted successfully!");
-
-        // Emit the new ride via Socket.IO
+  
         if (socket) {
-          socket.emit("newRide", response.data.ride); // Assuming your backend sends back the ride data
+          socket.emit("newRide", response.data.ride); // Emit the new ride via Socket.IO
         }
-
+  
         // Navigate back to DriverHome or another relevant screen
         navigation.navigate("DriverHome");
       } else {
@@ -111,7 +133,7 @@ const PostRideScreen = () => {
       console.error(error);
     }
   };
-
+  
   return (
     <SafeAreaView style={tw`flex-1 bg-white`}>
       {/* Header */}

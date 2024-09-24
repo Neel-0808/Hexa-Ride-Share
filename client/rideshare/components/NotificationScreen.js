@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { View, Text, SafeAreaView, ActivityIndicator, Alert, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
-import tw from "twrnc"; // Tailwind CSS for styling
+import tw from "twrnc"; 
+import { useUser } from "./UserContext";// Tailwind CSS for styling
 
 const NotificationScreen = ({ route }) => {
   const { requestId } = route.params; // Expecting requestId to be passed
@@ -16,7 +17,7 @@ const NotificationScreen = ({ route }) => {
     const fetchRideRequests = async () => {
       try {
         const response = await axios.get(
-          "http://192.168.29.122:3000/api/ride-requests"
+          "http://192.168.35.164:3000/api/ride-requests"
         );
         const request = response.data.find(req => req.id === requestId);
         setSelectedRequest(request);
@@ -41,7 +42,7 @@ const NotificationScreen = ({ route }) => {
     const fetchRideStatus = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.29.122:3000/api/ride-requests/status?requestId=${requestId}`
+          `http://192.168.35.164:3000/api/ride-requests/status?requestId=${requestId}`
         );
         if (response.data && response.data.status) {
           setRideStatus(response.data.status);
@@ -93,7 +94,7 @@ const NotificationScreen = ({ route }) => {
       console.log("Destination Coordinates:", destinationCoordinates);
 
       // Navigate to the RideMap screen with valid coordinates
-      navigation.navigate("RideMap", {
+      navigation.navigate("GoogleMapScreen", {
         pickupLocation: pickupCoordinates,
         destinationLocation: destinationCoordinates,
       });
