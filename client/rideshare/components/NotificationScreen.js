@@ -15,7 +15,9 @@ const NotificationScreen = ({ route }) => {
   useEffect(() => {
     const fetchRideRequests = async () => {
       try {
-        const response = await axios.get("http://192.168.35.164:3000/api/ride-requests");
+        const response = await axios.get(
+          "http://192.168.29.122:3000/api/ride-requests"
+        );
         const request = response.data.find(req => req.id === requestId);
         setSelectedRequest(request);
         setIsLoading(false);
@@ -38,7 +40,9 @@ const NotificationScreen = ({ route }) => {
 
     const fetchRideStatus = async () => {
       try {
-        const response = await axios.get(`http://192.168.35.164:3000/api/ride-requests/status?requestId=${requestId}`);
+        const response = await axios.get(
+          `http://192.168.29.122:3000/api/ride-requests/status?requestId=${requestId}`
+        );
         if (response.data && response.data.status) {
           setRideStatus(response.data.status);
         } else {

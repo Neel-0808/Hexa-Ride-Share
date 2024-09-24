@@ -1,14 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, SafeAreaView, Alert } from 'react-native';
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import tw from 'twrnc';
-import { useNavigation } from '@react-navigation/native';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  SafeAreaView,
+  Alert,
+} from "react-native";
+import { FontAwesome, Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import tw from "twrnc";
+import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
 
 const RideShareApp = () => {
-  const [pickupLocation, setPickupLocation] = useState('');
-  const [destination, setDestination] = useState('');
+  const [pickupLocation, setPickupLocation] = useState("");
+  const [destination, setDestination] = useState("");
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [time, setTime] = useState(new Date());
@@ -17,7 +25,7 @@ const RideShareApp = () => {
   const [filteredRides, setFilteredRides] = useState([]);
   const [isFiltered, setIsFiltered] = useState(false);
   const navigation = useNavigation();
-  
+
   // Dropdown state
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotificationMenu, setShowNotificationMenu] = useState(false);
@@ -26,11 +34,13 @@ const RideShareApp = () => {
   useEffect(() => {
     const fetchAllRides = async () => {
       try {
-        const response = await axios.get('http://192.168.35.164:3000/api/rides');
+        const response = await axios.get(
+          "http://192.168.29.122:3000/api/rides"
+        );
         setRides(response.data);
         setFilteredRides(response.data);
       } catch (error) {
-        Alert.alert('Error', `Failed to fetch rides. Error: ${error.message}`);
+        Alert.alert("Error", `Failed to fetch rides. Error: ${error.message}`);
       }
     };
 
@@ -39,34 +49,44 @@ const RideShareApp = () => {
 
   const handleSearch = async () => {
     if (!pickupLocation || !destination) {
-      Alert.alert('Error', 'Please enter both pickup location and destination to search for rides.');
+      Alert.alert(
+        "Error",
+        "Please enter both pickup location and destination to search for rides."
+      );
       return;
     }
 
     try {
-      const formattedDate = date.toISOString().split('T')[0];
-      const formattedTime = time.toTimeString().split(' ')[0];
+      const formattedDate = date.toISOString().split("T")[0];
+      const formattedTime = time.toTimeString().split(" ")[0];
 
-      const response = await axios.get('http://192.168.35.164:3000/api/rides', {
+      const response = await axios.get("http://192.168.29.122:3000/api/rides", {
         params: {
           date: formattedDate,
           time: formattedTime,
         },
       });
 
-      const filtered = response.data.filter((ride) =>
-        ride.origin.trim().toLowerCase().includes(pickupLocation.trim().toLowerCase()) &&
-        ride.destination.trim().toLowerCase().includes(destination.trim().toLowerCase())
+      const filtered = response.data.filter(
+        (ride) =>
+          ride.origin
+            .trim()
+            .toLowerCase()
+            .includes(pickupLocation.trim().toLowerCase()) &&
+          ride.destination
+            .trim()
+            .toLowerCase()
+            .includes(destination.trim().toLowerCase())
       );
 
       setFilteredRides(filtered);
       setIsFiltered(true);
 
       if (filtered.length === 0) {
-        Alert.alert('No Results', 'No rides match your search criteria.');
+        Alert.alert("No Results", "No rides match your search criteria.");
       }
     } catch (error) {
-      Alert.alert('Error', `Failed to fetch rides. Error: ${error.message}`);
+      Alert.alert("Error", `Failed to fetch rides. Error: ${error.message}`);
     }
   };
 
@@ -83,7 +103,7 @@ const RideShareApp = () => {
   };
 
   const handleSelectOnMap = () => {
-    navigation.navigate('MapScreen', {
+    navigation.navigate("MapScreen", {
       setLocation: (pickup, dest) => {
         setPickupLocation(pickup);
         setDestination(dest);
@@ -93,14 +113,19 @@ const RideShareApp = () => {
 
   const handleRideRequest = async () => {
     try {
-      const response = await axios.get("http://192.168.35.164:3000/api/ride-requests");
+      const response = await axios.get(
+        "http://192.168.29.122:3000/api/ride-requests"
+      );
       console.log("Ride Requests Data:", response.data);
-  
+
       if (Array.isArray(response.data) && response.data.length > 0) {
         const requestId = response.data[0].id;
-  
+
         if (requestId) {
-          console.log("Navigating to NotificationScreen with requestId:", requestId);
+          console.log(
+            "Navigating to NotificationScreen with requestId:",
+            requestId
+          );
           navigation.navigate("NotificationScreen", { requestId });
         } else {
           Alert.alert("Error", "No ride request ID found.");
@@ -110,22 +135,25 @@ const RideShareApp = () => {
       }
     } catch (error) {
       console.log("Error fetching ride requests:", error.message);
-      Alert.alert("Error", `Failed to fetch ride requests. Error: ${error.message}`);
+      Alert.alert(
+        "Error",
+        `Failed to fetch ride requests. Error: ${error.message}`
+      );
     }
   };
-  
+
   const handleRidePress = (ride) => {
-    navigation.navigate('AvailableRides', { ride });
+    navigation.navigate("AvailableRides", { ride });
   };
 
   // Toggle functions
   const toggleProfileMenu = () => {
-    setShowProfileMenu(prev => !prev);
+    setShowProfileMenu((prev) => !prev);
     setShowNotificationMenu(false); // Close notification menu if it's open
   };
 
   const toggleNotificationMenu = () => {
-    setShowNotificationMenu(prev => !prev);
+    setShowNotificationMenu((prev) => !prev);
     setShowProfileMenu(false); // Close profile menu if it's open
   };
 
@@ -142,10 +170,14 @@ const RideShareApp = () => {
           </TouchableOpacity>
           {showProfileMenu && (
             <View style={tw`absolute right-0 bg-white shadow-lg mt-2 rounded`}>
-              <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+              <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
                 <Text style={tw`p-2`}>Profile</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => Alert.alert('Logout', 'Are you sure you want to logout?')}>
+              <TouchableOpacity
+                onPress={() =>
+                  Alert.alert("Logout", "Are you sure you want to logout?")
+                }
+              >
                 <Text style={tw`p-2`}>Logout</Text>
               </TouchableOpacity>
             </View>
@@ -216,63 +248,85 @@ const RideShareApp = () => {
           />
         )}
 
-        <TouchableOpacity style={tw`bg-blue-500 p-4 rounded mt-4`} onPress={handleSearch}>
+        <TouchableOpacity
+          style={tw`bg-blue-500 p-4 rounded mt-4`}
+          onPress={handleSearch}
+        >
           <Text style={tw`text-white text-center text-lg`}>Search</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={tw`p-5`}>
-      {isFiltered ? (
-  <>
-    <Text style={tw`text-lg font-bold mb-2`}>Filtered Rides</Text>
-    {filteredRides.length > 0 ? (
-      filteredRides
-        .slice() // Make a shallow copy of the array to avoid mutating the original
-        .reverse()
-        .map((ride) => (
-          <TouchableOpacity
-            key={ride.id}
-            style={tw`bg-white p-4 mb-3 rounded-lg shadow-md`}
-            onPress={() => handleRidePress(ride)}
-          >
-            <Text style={tw`text-base`}>Driver Name: {ride.driver_name}</Text>
-            <Text style={tw`text-base`}>Vehicle Info: {ride.vehicle_info}</Text>
-            <Text style={tw`text-base`}>Origin: {ride.origin}</Text>
-            <Text style={tw`text-base`}>Destination: {ride.destination}</Text>
-            <Text style={tw`text-base`}>Available Seats: {ride.available_seats}</Text>
-          </TouchableOpacity>
-        ))
-    ) : (
-      <Text style={tw`text-center text-gray-500`}>No rides found for your search</Text>
-    )}
-  </>
-) : (
-  <>
-    <Text style={tw`text-lg font-bold mb-2`}>Available Rides</Text>
-    {rides.length > 0 ? (
-      rides
-        .slice() // Make a shallow copy of the array to avoid mutating the original
-        .reverse()
-        .map((ride) => (
-          <TouchableOpacity
-            key={ride.id}
-            style={tw`bg-white p-4 mb-3 rounded-lg shadow-md`}
-            onPress={() => handleRidePress(ride)}
-          >
-            <Text style={tw`text-base`}>Driver Name: {ride.driver_name}</Text>
-            <Text style={tw`text-base`}>Vehicle Info: {ride.vehicle_info}</Text>
-            <Text style={tw`text-base`}>Origin: {ride.origin}</Text>
-            <Text style={tw`text-base`}>Destination: {ride.destination}</Text>
-            <Text style={tw`text-base`}>Available Seats: {ride.available_seats}</Text>
-            <Text style={tw`text-base`}>Time: {ride.ride_time}</Text>
-          </TouchableOpacity>
-        ))
-    ) : (
-      <Text style={tw`text-center text-gray-500`}>No rides available</Text>
-    )}
-  </>
-)}
-
+        {isFiltered ? (
+          <>
+            <Text style={tw`text-lg font-bold mb-2`}>Filtered Rides</Text>
+            {filteredRides.length > 0 ? (
+              filteredRides
+                .slice() // Make a shallow copy of the array to avoid mutating the original
+                .reverse()
+                .map((ride) => (
+                  <TouchableOpacity
+                    key={ride.id}
+                    style={tw`bg-white p-4 mb-3 rounded-lg shadow-md`}
+                    onPress={() => handleRidePress(ride)}
+                  >
+                    <Text style={tw`text-base`}>
+                      Driver Name: {ride.driver_name}
+                    </Text>
+                    <Text style={tw`text-base`}>
+                      Vehicle Info: {ride.vehicle_info}
+                    </Text>
+                    <Text style={tw`text-base`}>Origin: {ride.origin}</Text>
+                    <Text style={tw`text-base`}>
+                      Destination: {ride.destination}
+                    </Text>
+                    <Text style={tw`text-base`}>
+                      Available Seats: {ride.available_seats}
+                    </Text>
+                  </TouchableOpacity>
+                ))
+            ) : (
+              <Text style={tw`text-center text-gray-500`}>
+                No rides found for your search
+              </Text>
+            )}
+          </>
+        ) : (
+          <>
+            <Text style={tw`text-lg font-bold mb-2`}>Available Rides</Text>
+            {rides.length > 0 ? (
+              rides
+                .slice() // Make a shallow copy of the array to avoid mutating the original
+                .reverse()
+                .map((ride) => (
+                  <TouchableOpacity
+                    key={ride.id}
+                    style={tw`bg-white p-4 mb-3 rounded-lg shadow-md`}
+                    onPress={() => handleRidePress(ride)}
+                  >
+                    <Text style={tw`text-base`}>
+                      Driver Name: {ride.driver_name}
+                    </Text>
+                    <Text style={tw`text-base`}>
+                      Vehicle Info: {ride.vehicle_info}
+                    </Text>
+                    <Text style={tw`text-base`}>Origin: {ride.origin}</Text>
+                    <Text style={tw`text-base`}>
+                      Destination: {ride.destination}
+                    </Text>
+                    <Text style={tw`text-base`}>
+                      Available Seats: {ride.available_seats}
+                    </Text>
+                    <Text style={tw`text-base`}>Time: {ride.ride_time}</Text>
+                  </TouchableOpacity>
+                ))
+            ) : (
+              <Text style={tw`text-center text-gray-500`}>
+                No rides available
+              </Text>
+            )}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

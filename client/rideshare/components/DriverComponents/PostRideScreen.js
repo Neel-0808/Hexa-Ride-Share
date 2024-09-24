@@ -88,7 +88,7 @@ const PostRideScreen = () => {
 
     try {
       // Replace with your actual backend server IP
-      const BACKEND_URL = "http://192.168.35.164:3000"; // e.g., "http://192.168.1.10:3000"
+      const BACKEND_URL = "http://192.168.29.122:3000"; // e.g., "http://192.168.1.10:3000"
 
       // Send POST request to create a new ride
       const response = await axios.post(`${BACKEND_URL}/api/rides`, rideDetails);

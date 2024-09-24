@@ -1,12 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { Image, Text, TextInput, TouchableOpacity, View, Alert } from "react-native";
+import {
+  Image,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Alert,
+} from "react-native";
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import tw from "twrnc";
 import axios from "axios";
-import { useUser } from './UserContext'; // Import useUser from UserContext
+import { useUser } from "./UserContext"; // Import useUser from UserContext
+import { useNavigation } from "@react-navigation/native"; // Import useNavigation
 
-const ProfilePage = ({ navigation }) => {
-  const { userId } = useUser(); // Get userId from UserContext
+const ProfilePage = () => {
+  const { userId, setUserId } = useUser(); // Get userId and setUserId from UserContext
+  const navigation = useNavigation(); // Use useNavigation for navigation
   const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
@@ -15,7 +24,9 @@ const ProfilePage = ({ navigation }) => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await axios.get(`http://192.168.35.164:3000/api/users/${userId}`);
+        const response = await axios.get(
+          `http://192.168.29.122:3000/api/users/${userId}`
+        );
         const { username, email, phonenumber, gender } = response.data; // Adjust property names as needed
         setUserName(username);
         setEmail(email);
@@ -31,6 +42,28 @@ const ProfilePage = ({ navigation }) => {
       fetchUserData();
     }
   }, [userId]);
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Confirm Logout",
+      "Are you sure you want to logout?",
+      [
+        {
+          text: "Cancel",
+          onPress: () => console.log("Logout canceled"),
+          style: "cancel",
+        },
+        {
+          text: "OK",
+          onPress: () => {
+            setUserId(null); // Clear userId in context or storage
+            navigation.navigate("LoginScreen"); // Navigate to the Login screen
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
 
   return (
     <View style={tw`flex-1 bg-white`}>
@@ -71,9 +104,13 @@ const ProfilePage = ({ navigation }) => {
         />
 
         {/* Mobile Input with Country Flag */}
-        <View style={tw`flex-row items-center border border-gray-300 p-3 rounded mb-4`}>
+        <View
+          style={tw`flex-row items-center border border-gray-300 p-3 rounded mb-4`}
+        >
           <Image
-            source={{ uri: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png" }}
+            source={{
+              uri: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png",
+            }}
             style={tw`w-6 h-4 mr-2`}
           />
           <Text style={tw`mr-2`}>+91</Text>
@@ -93,20 +130,27 @@ const ProfilePage = ({ navigation }) => {
 
         {/* Buttons */}
         <View style={tw`flex justify-center items-center`}>
-          <TouchableOpacity style={[tw`bg-blue-500 p-4 rounded mb-3`, { width: "50%" }]}>
+          <TouchableOpacity
+            style={[tw`bg-blue-500 p-4 rounded mb-3`, { width: "50%" }]}
+          >
             <Text style={tw`text-white text-center`}>History</Text>
           </TouchableOpacity>
         </View>
 
         <View style={tw`flex justify-center items-center`}>
-          <TouchableOpacity style={[tw`bg-red-700 p-4 rounded mb-3`, { width: "50%" }]}>
+          <TouchableOpacity
+            style={[tw`bg-red-700 p-4 rounded mb-3`, { width: "50%" }]}
+            onPress={handleLogout} // Attach logout function
+          >
             <Text style={tw`text-white text-center`}>Logout</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Bottom Navigation */}
-      <View style={tw`flex-row justify-between items-center bg-gray-200 p-4 absolute bottom-0 w-full`}>
+      <View
+        style={tw`flex-row justify-between items-center bg-gray-200 p-4 absolute bottom-0 w-full`}
+      >
         <TouchableOpacity onPress={() => navigation.navigate("Home")}>
           <FontAwesome5 name="home" size={24} color="gray" />
         </TouchableOpacity>

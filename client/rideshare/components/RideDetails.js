@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,23 +12,43 @@ import { Ionicons } from "@expo/vector-icons";
 import tw from "twrnc"; // Tailwind CSS for styling
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
-import * as Notifications from 'expo-notifications';
-import Constants from 'expo-constants'; // Importing Expo Notifications
+import * as Notifications from "expo-notifications";
+import Constants from "expo-constants"; // Importing Expo Notifications
+import { useUser } from "./UserContext"; // Import useUser for accessing user context
 
 const RideDetails = ({ route }) => {
-  const { requestId } = route.params;
+  const { userId } = useUser(); // Get userId from context
   const [riderName, setRiderName] = useState("");
   const [gender, setGender] = useState("");
   const [time, setTime] = useState("");
   const [pickupLocation, setPickupLocation] = useState("");
   const [destinationLocation, setDestinationLocation] = useState("");
   const [contact, setContact] = useState("");
-  
+
   const navigation = useNavigation();
+
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      try {
+        const response = await axios.get(
+          `http://192.168.29.122:3000/api/users/${userId}`
+        );
+        const user = response.data;
+        setRiderName(user.username); // Assuming 'username' field exists in user table
+        setGender(user.gender);
+        setContact(user.phonenumber); // Assuming 'phonenumber' field exists in user table
+      } catch (error) {
+        console.error("Error fetching user details:", error);
+        Alert.alert("Error", "Could not fetch user details.");
+      }
+    };
+
+    fetchUserDetails();
+  }, [userId]);
 
   const handleSubmit = async () => {
     const expoPushToken = await registerForPushNotificationsAsync();
-  
+
     if (
       !riderName ||
       !gender ||
@@ -40,7 +60,7 @@ const RideDetails = ({ route }) => {
       Alert.alert("Error", "Please fill all the fields.");
       return;
     }
-  
+
     const rideRequest = {
       rider_name: riderName,
       gender: gender,
@@ -50,16 +70,22 @@ const RideDetails = ({ route }) => {
       contact: contact,
       push_token: expoPushToken, // Changed to push_token
     };
-  
+
     try {
-      const response = await axios.post("http://192.168.35.164:3000/api/ride-requests", rideRequest);
-  
+      const response = await axios.post(
+        "http://192.168.29.122:3000/api/ride-requests",
+        rideRequest
+      );
+
       // Correctly extract requestId from the response
       const requestId = response.data.requestId;
-  
+
       if (requestId) {
         Alert.alert("Success", "Ride request has been submitted!");
-        console.log("Navigating to NotificationScreen with requestId:", requestId);
+        console.log(
+          "Navigating to NotificationScreen with requestId:",
+          requestId
+        );
         navigation.navigate("NotificationScreen", { requestId });
       } else {
         console.error("Error: No requestId received");
@@ -67,39 +93,43 @@ const RideDetails = ({ route }) => {
       }
     } catch (error) {
       if (error.response && error.response.status === 500) {
-        Alert.alert("Error", "Request failed with status code 500. Please try again.");
+        Alert.alert(
+          "Error",
+          "Request failed with status code 500. Please try again."
+        );
       } else {
         Alert.alert("Error", `Failed to submit ride request: ${error.message}`);
       }
     }
   };
-  
 
-  
   // Function to register for push notifications and get Expo push token
   async function registerForPushNotificationsAsync() {
     let token;
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
-  
-    if (existingStatus !== 'granted') {
+
+    if (existingStatus !== "granted") {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
-  
-    if (finalStatus !== 'granted') {
-      Alert.alert('Failed to get push token for push notification!');
+
+    if (finalStatus !== "granted") {
+      Alert.alert("Failed to get push token for push notification!");
       return;
     }
-  
-    token = (await Notifications.getExpoPushTokenAsync({
-      projectId: Constants.manifest?.expo?.projectId,
-    })).data;
-  
+
+    token = (
+      await Notifications.getExpoPushTokenAsync({
+        projectId: Constants.manifest?.expo?.projectId,
+      })
+    ).data;
+
     console.log(token); // You should store this in your backend
     return token;
   }
-  
+
   return (
     <SafeAreaView style={tw`flex-1 bg-white`}>
       {/* Header */}
@@ -107,7 +137,9 @@ const RideDetails = ({ route }) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={tw`text-white text-xl font-bold`}>Ride Request Details</Text>
+        <Text style={tw`text-white text-xl font-bold`}>
+          Ride Request Details
+        </Text>
         <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
           <Ionicons name="person-circle-outline" size={40} color="white" />
         </TouchableOpacity>
@@ -181,7 +213,9 @@ const RideDetails = ({ route }) => {
           style={tw`bg-blue-500 p-4 rounded-full shadow-lg`}
           onPress={handleSubmit}
         >
-          <Text style={tw`text-white text-center text-lg font-bold`}>Submit Ride Request</Text>
+          <Text style={tw`text-white text-center text-lg font-bold`}>
+            Submit Ride Request
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
