@@ -7,8 +7,6 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
-  TouchableWithoutFeedback, // import this
-  Keyboard,
 } from "react-native";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -26,20 +24,21 @@ const RideShareApp = () => {
   const [rides, setRides] = useState([]);
   const [filteredRides, setFilteredRides] = useState([]);
   const [isFiltered, setIsFiltered] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const navigation = useNavigation();
 
+  // Dropdown state
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showNotificationMenu, setShowNotificationMenu] = useState(false);
+
+  // Fetch all rides when the app loads
   useEffect(() => {
     const fetchAllRides = async () => {
       try {
         const response = await axios.get(
-          "http://192.168.29.122:3000/api/rides"
+          "http://192.168.35.164:3000/api/rides"
         );
-        const sortedRides = response.data.sort(
-          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-        ); // Sort rides based on creation date
-        setRides(sortedRides);
-        setFilteredRides(sortedRides);
+        setRides(response.data);
+        setFilteredRides(response.data);
       } catch (error) {
         Alert.alert("Error", `Failed to fetch rides. Error: ${error.message}`);
       }
@@ -61,7 +60,7 @@ const RideShareApp = () => {
       const formattedDate = date.toISOString().split("T")[0];
       const formattedTime = time.toTimeString().split(" ")[0];
 
-      const response = await axios.get("http://192.168.29.122:3000/api/rides", {
+      const response = await axios.get("http://192.168.35.164:3000/api/rides", {
         params: {
           date: formattedDate,
           time: formattedTime,
@@ -80,14 +79,10 @@ const RideShareApp = () => {
             .includes(destination.trim().toLowerCase())
       );
 
-      const sortedFilteredRides = filtered.sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-      ); // Sort filtered rides based on creation date
-
-      setFilteredRides(sortedFilteredRides);
+      setFilteredRides(filtered);
       setIsFiltered(true);
 
-      if (sortedFilteredRides.length === 0) {
+      if (filtered.length === 0) {
         Alert.alert("No Results", "No rides match your search criteria.");
       }
     } catch (error) {
@@ -118,19 +113,16 @@ const RideShareApp = () => {
 
   const handleRideRequest = async () => {
     try {
-      const response = await axios.get(
-        "http://192.168.29.122:3000/api/ride-requests"
-      );
+      const response = await axios.get("http://192.168.35.164:3000/api/ride-requests");
       console.log("Ride Requests Data:", response.data);
-
+  
       if (Array.isArray(response.data) && response.data.length > 0) {
-        const requestId = response.data[0].id;
-
+        // Get the last ride request
+        const lastRequest = response.data[response.data.length - 1]; // Accessing the last element
+        const requestId = lastRequest.id; // Extracting the ID from the last request
+  
         if (requestId) {
-          console.log(
-            "Navigating to NotificationScreen with requestId:",
-            requestId
-          );
+          console.log("Navigating to NotificationScreen with requestId:", requestId);
           navigation.navigate("NotificationScreen", { requestId });
         } else {
           Alert.alert("Error", "No ride request ID found.");
@@ -140,153 +132,134 @@ const RideShareApp = () => {
       }
     } catch (error) {
       console.log("Error fetching ride requests:", error.message);
-      Alert.alert(
-        "Error",
-        `Failed to fetch ride requests. Error: ${error.message}`
-      );
+      Alert.alert("Error", `Failed to fetch ride requests. Error: ${error.message}`);
     }
   };
+  
 
   const handleRidePress = (ride) => {
     navigation.navigate("AvailableRides", { ride });
   };
 
-  const toggleMenu = () => setShowMenu((prev) => !prev);
-  const closeMenu = () => setShowMenu(false);
+  // Toggle functions
+  const toggleProfileMenu = () => {
+    setShowProfileMenu((prev) => !prev);
+    setShowNotificationMenu(false); // Close notification menu if it's open
+  };
+
+  const toggleNotificationMenu = () => {
+    setShowNotificationMenu((prev) => !prev);
+    setShowProfileMenu(false); // Close profile menu if it's open
+  };
 
   return (
-    <TouchableWithoutFeedback
-      onPress={() => {
-        closeMenu(); // Close the menu when touched outside
-        Keyboard.dismiss(); // Dismiss the keyboard as well
-      }}
-    >
-      <SafeAreaView style={tw`flex-1 bg-gray-100`}>
-        {/* Header Section */}
-        <View style={tw`bg-blue-600 p-4 flex-row justify-between items-center`}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={28} color="white" />
+    <SafeAreaView style={tw`flex-1 bg-gray-100`}>
+      <View style={tw`bg-blue-600 p-4 flex-row justify-between items-center`}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <Text style={tw`text-white text-xl font-bold`}>Buddy</Text>
+        <View style={tw`flex-row`}>
+          <TouchableOpacity onPress={toggleProfileMenu}>
+            <Ionicons name="person-circle-outline" size={40} color="white" />
           </TouchableOpacity>
-          <Text style={tw`text-white text-xl font-bold`}>
-            Ride Request Details
-          </Text>
-          <View>
-            <TouchableOpacity onPress={toggleMenu}>
-              <Ionicons name="menu-outline" size={44} color="white" />
-            </TouchableOpacity>
-          </View>
+          {showProfileMenu && (
+            <View style={tw`absolute right-0 bg-white shadow-lg mt-2 rounded`}>
+              <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
+                <Text style={tw`p-2`}>Profile</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() =>
+                  Alert.alert("Logout", "Are you sure you want to logout?")
+                }
+              >
+                <Text style={tw`p-2`}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <TouchableOpacity onPress={toggleNotificationMenu}>
+            <Ionicons name="notifications-outline" size={24} color="white" />
+          </TouchableOpacity>
+          {showNotificationMenu && (
+            <View style={tw`absolute right-0 bg-white shadow-lg mt-2 rounded`}>
+              <TouchableOpacity onPress={handleRideRequest}>
+                <Text style={tw`p-2`}>Check Notifications</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
+      </View>
 
-        {/* Dropdown Menu */}
-        {showMenu && (
-          <View
-            style={[
-              tw`absolute top-14 right-1 bg-white shadow-lg rounded p-1 z-30`,
-              { width: 200, borderWidth: 1, borderColor: "lightgray" },
-            ]}
+      <View style={tw`bg-white p-5 m-4 rounded-lg shadow-lg`}>
+        <TextInput
+          style={tw`border border-gray-300 p-3 rounded mt-2`}
+          placeholder="Your current location"
+          value={pickupLocation}
+          onChangeText={setPickupLocation}
+        />
+        <TextInput
+          style={tw`border border-gray-300 p-3 rounded mt-2`}
+          placeholder="Destination"
+          value={destination}
+          onChangeText={setDestination}
+        />
+        <View style={tw`flex-row justify-between mt-2`}>
+          <TouchableOpacity
+            style={tw`flex-row items-center border border-gray-300 p-3 rounded`}
+            onPress={handleSelectOnMap}
           >
-            <TouchableOpacity
-              onPress={() => {
-                navigation.navigate("Profile");
-                closeMenu();
-              }}
-              style={tw`p-2 flex-row items-center`}
-            >
-              <Ionicons
-                name="person-circle-outline"
-                size={28}
-                color="black"
-                style={tw`mr-2`}
-              />
-              <Text style={tw`text-black text-base`}>Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                navigation.navigate("NotificationScreen");
-                closeMenu();
-              }}
-              style={tw`p-2 flex-row items-center`}
-            >
-              <Ionicons
-                name="notifications-outline"
-                size={28}
-                color="black"
-                style={tw`mr-2`}
-              />
-              <Text style={tw`text-black text-base`}>Notifications</Text>
-            </TouchableOpacity>
-          </View>
+            <FontAwesome name="map-marker" size={24} color="black" />
+            <Text style={tw`ml-2`}>Select on Map</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={tw`flex-row items-center border border-gray-300 p-3 rounded`}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <FontAwesome name="calendar" size={24} color="black" />
+            <Text style={tw`ml-2`}>Date</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={tw`flex-row items-center border border-gray-300 p-3 rounded`}
+            onPress={() => setShowTimePicker(true)}
+          >
+            <FontAwesome name="clock-o" size={24} color="black" />
+            <Text style={tw`ml-2`}>Time</Text>
+          </TouchableOpacity>
+        </View>
+        {showDatePicker && (
+          <DateTimePicker
+            value={date}
+            mode="date"
+            display="default"
+            onChange={onDateChange}
+          />
+        )}
+        {showTimePicker && (
+          <DateTimePicker
+            value={time}
+            mode="time"
+            display="default"
+            onChange={onTimeChange}
+          />
         )}
 
-        {/* Search Section */}
-        <View style={tw`bg-white p-5 m-4 rounded-lg shadow-lg`}>
-          <TextInput
-            style={tw`border border-gray-300 p-3 rounded mt-2`}
-            placeholder="Your current location"
-            value={pickupLocation}
-            onChangeText={setPickupLocation}
-          />
-          <TextInput
-            style={tw`border border-gray-300 p-3 rounded mt-2`}
-            placeholder="Destination"
-            value={destination}
-            onChangeText={setDestination}
-          />
-          <View style={tw`flex-row justify-between mt-2`}>
-            <TouchableOpacity
-              style={tw`flex-row items-center border border-gray-300 p-3 rounded`}
-              onPress={() => navigation.navigate("MapScreen")}
-            >
-              <FontAwesome name="map-marker" size={24} color="black" />
-              <Text style={tw`ml-2`}>Select on Map</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={tw`flex-row items-center border border-gray-300 p-3 rounded`}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <FontAwesome name="calendar" size={24} color="black" />
-              <Text style={tw`ml-2`}>Date</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={tw`flex-row items-center border border-gray-300 p-3 rounded`}
-              onPress={() => setShowTimePicker(true)}
-            >
-              <FontAwesome name="clock-o" size={24} color="black" />
-              <Text style={tw`ml-2`}>Time</Text>
-            </TouchableOpacity>
-          </View>
-          {showDatePicker && (
-            <DateTimePicker
-              value={date}
-              mode="date"
-              display="default"
-              onChange={onDateChange}
-            />
-          )}
-          {showTimePicker && (
-            <DateTimePicker
-              value={time}
-              mode="time"
-              display="default"
-              onChange={onTimeChange}
-            />
-          )}
+        <TouchableOpacity
+          style={tw`bg-blue-500 p-4 rounded mt-4`}
+          onPress={handleSearch}
+        >
+          <Text style={tw`text-white text-center text-lg`}>Search</Text>
+        </TouchableOpacity>
+      </View>
 
-          <TouchableOpacity
-            style={tw`bg-blue-500 p-4 rounded mt-4`}
-            onPress={handleSearch}
-          >
-            <Text style={tw`text-white text-center text-lg`}>Search</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Rides Section */}
-        <ScrollView style={tw`p-5`}>
-          {isFiltered ? (
-            <>
-              <Text style={tw`text-lg font-bold mb-2`}>Filtered Rides</Text>
-              {filteredRides.length > 0 ? (
-                filteredRides.map((ride) => (
+      <ScrollView style={tw`p-5`}>
+        {isFiltered ? (
+          <>
+            <Text style={tw`text-lg font-bold mb-2`}>Filtered Rides</Text>
+            {filteredRides.length > 0 ? (
+              filteredRides
+                .slice() // Make a shallow copy of the array to avoid mutating the original
+                .reverse()
+                .map((ride) => (
                   <TouchableOpacity
                     key={ride.id}
                     style={tw`bg-white p-4 mb-3 rounded-lg shadow-md`}
@@ -307,39 +280,50 @@ const RideShareApp = () => {
                     </Text>
                   </TouchableOpacity>
                 ))
-              ) : (
-                <Text>No rides available.</Text>
-              )}
-            </>
-          ) : (
-            <>
-              <Text style={tw`text-lg font-bold mb-2`}>Available Rides</Text>
-              {rides.map((ride) => (
-                <TouchableOpacity
-                  key={ride.id}
-                  style={tw`bg-white p-4 mb-3 rounded-lg shadow-md`}
-                  onPress={() => handleRidePress(ride)}
-                >
-                  <Text style={tw`text-base`}>
-                    Driver Name: {ride.driver_name}
-                  </Text>
-                  <Text style={tw`text-base`}>
-                    Vehicle Info: {ride.vehicle_info}
-                  </Text>
-                  <Text style={tw`text-base`}>Origin: {ride.origin}</Text>
-                  <Text style={tw`text-base`}>
-                    Destination: {ride.destination}
-                  </Text>
-                  <Text style={tw`text-base`}>
-                    Available Seats: {ride.available_seats}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </>
-          )}
-        </ScrollView>
-      </SafeAreaView>
-    </TouchableWithoutFeedback>
+            ) : (
+              <Text style={tw`text-center text-gray-500`}>
+                No rides found for your search
+              </Text>
+            )}
+          </>
+        ) : (
+          <>
+            <Text style={tw`text-lg font-bold mb-2`}>Available Rides</Text>
+            {rides.length > 0 ? (
+              rides
+                .slice() // Make a shallow copy of the array to avoid mutating the original
+                .reverse()
+                .map((ride) => (
+                  <TouchableOpacity
+                    key={ride.id}
+                    style={tw`bg-white p-4 mb-3 rounded-lg shadow-md`}
+                    onPress={() => handleRidePress(ride)}
+                  >
+                    <Text style={tw`text-base`}>
+                      Driver Name: {ride.driver_name}
+                    </Text>
+                    <Text style={tw`text-base`}>
+                      Vehicle Info: {ride.vehicle_info}
+                    </Text>
+                    <Text style={tw`text-base`}>Origin: {ride.origin}</Text>
+                    <Text style={tw`text-base`}>
+                      Destination: {ride.destination}
+                    </Text>
+                    <Text style={tw`text-base`}>
+                      Available Seats: {ride.available_seats}
+                    </Text>
+                    <Text style={tw`text-base`}>Time: {ride.ride_time}</Text>
+                  </TouchableOpacity>
+                ))
+            ) : (
+              <Text style={tw`text-center text-gray-500`}>
+                No rides available
+              </Text>
+            )}
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 

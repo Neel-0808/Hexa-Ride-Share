@@ -94,7 +94,7 @@ app.post("/api/rides", async (req, res) => {
 
   try {
     const result = await dbQuery(
-      "INSERT INTO rides (driver_name, vehicle_info, origin, destination, available_seats, ride_time, ride_date) VALUES (?,?,?,?,?,?,?)",
+      "INSERT INTO rides (driver_name, vehicle_info, origin, destination, available_seats,ride_time,ride_date) VALUES (?,?,?, ?, ?, ?, ?)",
       [
         driver_name,
         vehicle_info,
@@ -117,8 +117,10 @@ app.post("/api/rides", async (req, res) => {
 // GET request to fetch all available rides
 app.get("/api/rides", async (req, res) => {
   try {
+    const currentDateTime = new Date();
+
     // Delete past rides before fetching the remaining ones
-    await dbQuery(
+    await db.query(
       `DELETE FROM rides WHERE ride_date < CURDATE() OR (ride_date = CURDATE() AND ride_time < CURTIME())`
     );
 
@@ -164,12 +166,10 @@ app.post("/api/ride-requests", async (req, res) => {
         push_token,
       ]
     );
-    res
-      .status(201)
-      .json({
-        message: "Ride request created successfully",
-        requestId: result.insertId,
-      });
+    res.status(201).json({
+      message: "Ride request created successfully",
+      requestId: result.insertId,
+    });
   } catch (error) {
     console.error("Error inserting ride request:", error);
     res.status(500).json({ error: "Failed to submit ride request" });
@@ -190,23 +190,20 @@ app.get("/api/ride-requests", async (req, res) => {
 });
 
 // POST request to accept a ride and send a notification to the rider
-app.post("/api/ride-requests/:userId/accept", async (req, res) => {
-  const userId = req.params.userId; // Extract userId from URL params
+app.post("/api/ride-requests/:id/accept", async (req, res) => {
+  const requestId = req.params.id; // Retrieve the ride request ID from URL parameters
 
   try {
-    // Find the rider's request and Expo push token from DB based on userId
+    // Find the rider's request and Expo push token from DB
     const result = await dbQuery(
-      'SELECT id, push_token FROM ride_requests WHERE user_id = ? AND status = "Pending"',
-      [userId]
+      "SELECT push_token FROM ride_requests WHERE id = ?",
+      [requestId]
     );
 
     if (result.length === 0) {
-      return res
-        .status(404)
-        .json({ error: "No pending ride request found for this user" });
+      return res.status(404).json({ error: "Ride request not found" }); // Handle case where ride request is not found
     }
 
-    const requestId = result[0].id; // Get the ride request ID
     const riderExpoPushToken = result[0].push_token;
 
     // Update ride status to "Accepted"
@@ -225,21 +222,22 @@ app.post("/api/ride-requests/:userId/accept", async (req, res) => {
         },
       ];
 
+      // Attempt to send the notification
       try {
         let tickets = await expo.sendPushNotificationsAsync(messages);
         console.log("Notification tickets:", tickets);
-        res.json({ message: "Ride accepted and notification sent" });
+        res.json({ message: "Ride accepted and notification sent" }); // Respond with success message
       } catch (notificationError) {
         console.error("Error sending notification:", notificationError);
-        res.status(500).json({ error: "Failed to send notification" });
+        res.status(500).json({ error: "Failed to send notification" }); // Handle notification send failure
       }
     } else {
       console.error("Invalid Expo Push Token:", riderExpoPushToken);
-      res.status(400).json({ error: "Invalid Expo Push Token" });
+      res.status(400).json({ error: "Invalid Expo Push Token" }); // Handle invalid push token
     }
   } catch (error) {
     console.error("Error accepting ride:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Internal server error" }); // Handle internal errors
   }
 });
 

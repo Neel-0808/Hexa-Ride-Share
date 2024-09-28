@@ -27,9 +27,9 @@ const DriverHome = () => {
     const fetchAllRideRequests = async () => {
       try {
         const response = await axios.get(
-          "http://192.168.29.122:3000/api/ride-requests"
+          "http://192.168.35.164:3000/api/ride-requests"
         );
-        console.log("Ride Requests Data:", response.data); // Debugging API response
+         // Debugging API response
         setRideRequests(response.data);
       } catch (error) {
         console.log("Error fetching ride requests:", error.message); // Debugging error
@@ -62,6 +62,8 @@ const DriverHome = () => {
   
       // Log the selected request to inspect the coordinates
       console.log("Selected Request for Accepting Ride:", selectedRequest);
+      console.log("Request ID sent to backend:", selectedRequest.id);
+
   
       // Geocode the pickup and destination locations using OpenStreetMap Nominatim
       const getCoordinates = async (location) => {
@@ -89,7 +91,7 @@ const DriverHome = () => {
   
       // Proceed with accepting the request if the coordinates are valid
       const response = await axios.post(
-        `http://192.168.29.122:3000/api/ride-requests/${selectedRequest.id}/accept`,
+        `http://192.168.35.164:3000/api/ride-requests/${selectedRequest.id}/accept`,
         {
           driver_id: "driver123", // Driver's ID
           request_id: selectedRequest.id,

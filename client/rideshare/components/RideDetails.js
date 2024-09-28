@@ -73,12 +73,13 @@ const RideDetails = ({ route }) => {
 
     try {
       const response = await axios.post(
-        "http://192.168.29.122:3000/api/ride-requests",
+        "http://192.168.35.164:3000/api/ride-requests",
         rideRequest
       );
 
       // Correctly extract requestId from the response
       const requestId = response.data.requestId;
+      console.log("Ride Request Submitted:", requestId);
 
       if (requestId) {
         Alert.alert("Success", "Ride request has been submitted!");

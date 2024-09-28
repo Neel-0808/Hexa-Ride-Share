@@ -1,77 +1,42 @@
+import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
 import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
+  SafeAreaView,
+  Text,
   TouchableOpacity,
+  View,
 } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native"; // Importing useRoute to get params
-import axios from "axios";
 import tw from "twrnc"; // Tailwind CSS for styling
 
-const NotificationScreen = () => {
-  const route = useRoute(); // Access navigation parameters
-  const navigation = useNavigation(); // Navigation object
+const NotificationScreen = ({ route }) => {
+  // Destructure requestId and selectedRequest from route params
+  const { requestId, selectedRequest } = route.params || {}; // Fallback to an empty object
+  console.log("Route Params:", route.params); // Log route params for debugging
+  console.log("Selected Request:", selectedRequest); // Log selectedRequest
 
-  const [requestId, setRequestId] = useState(null); // For storing the requestId
-  const [rideStatus, setRideStatus] = useState("Pending");
+  const [rideStatus, setRideStatus] = useState("Pending"); // Default status
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState(null);
-
-  // Fetch ride requests and find the selected request
-  useEffect(() => {
-    if (route.params && route.params.requestId) {
-      setRequestId(route.params.requestId); // Set requestId from params
-    } else {
-      console.error("RequestId is undefined or missing");
-      Alert.alert("Error", "RequestId is missing");
-      return;
-    }
-
-    const fetchRideRequests = async () => {
-      try {
-        const response = await axios.get(
-          "http://192.168.29.122:3000/api/ride-requests"
-        );
-        const request = response.data.find((req) => req.id === requestId);
-        if (request) {
-          setSelectedRequest(request);
-        } else {
-          Alert.alert("Error", "Ride request not found");
-        }
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error fetching ride requests:", error.message);
-        Alert.alert(
-          "Error",
-          `Failed to fetch ride requests. Error: ${error.message}`
-        );
-        setIsLoading(false);
-      }
-    };
-
-    if (requestId) {
-      fetchRideRequests();
-    }
-  }, [requestId, route.params]);
+  const navigation = useNavigation();
 
   // Polling to check ride status
   useEffect(() => {
-    if (!requestId) {
-      return;
-    }
-
     const fetchRideStatus = async () => {
       try {
+        if (!requestId) {
+          throw new Error("RequestId is undefined or null");
+        }
+
         const response = await axios.get(
-          `http://192.168.29.122:3000/api/ride-requests/status?requestId=${requestId}`
+          `http://192.168.35.164:3000/api/ride-requests/status?requestId=${requestId}`
         );
+
         if (response.data && response.data.status) {
-          setRideStatus(response.data.status);
+          setRideStatus(response.data.status); // Update status from backend
         } else {
-          console.error("Invalid response data:", response.data);
+          throw new Error("Invalid response data");
         }
       } catch (error) {
         console.error("Error fetching ride status:", error);
@@ -79,6 +44,8 @@ const NotificationScreen = () => {
           "Error",
           `Failed to fetch ride status. Error: ${error.message}`
         );
+      } finally {
+        setIsLoading(false); // Ensure loading state is updated
       }
     };
 
@@ -90,9 +57,8 @@ const NotificationScreen = () => {
 
     // Clean up the interval on component unmount
     return () => clearInterval(intervalId);
-  }, [requestId]);
+  }, [requestId]); // Dependency array to trigger effect when requestId changes
 
-  // Fetch coordinates based on the location name
   const getCoordinates = async (location) => {
     try {
       const response = await axios.get(
@@ -100,6 +66,7 @@ const NotificationScreen = () => {
           location
         )}&format=json&limit=1`
       );
+
       if (response.data.length > 0) {
         const { lat, lon } = response.data[0];
         return { latitude: parseFloat(lat), longitude: parseFloat(lon) };
@@ -113,15 +80,11 @@ const NotificationScreen = () => {
     }
   };
 
-  // Handle viewing the map based on pickup and destination locations
   const handleViewOnMap = async () => {
     try {
-      if (
-        !selectedRequest ||
-        !selectedRequest.pickup_location ||
-        !selectedRequest.destination_location
-      ) {
-        throw new Error("Pickup and destination locations are required.");
+      // Ensure selectedRequest is valid
+      if (!selectedRequest || !selectedRequest.pickup_location || !selectedRequest.destination_location) {
+        throw new Error("Pickup or destination location is not available.");
       }
 
       const pickupCoordinates = await getCoordinates(
@@ -134,7 +97,7 @@ const NotificationScreen = () => {
       console.log("Pickup Coordinates:", pickupCoordinates);
       console.log("Destination Coordinates:", destinationCoordinates);
 
-      // Navigate to the RideMap screen with valid coordinates
+      // Navigate to the GoogleMapScreen with valid coordinates
       navigation.navigate("GoogleMapScreen", {
         pickupLocation: pickupCoordinates,
         destinationLocation: destinationCoordinates,
@@ -164,12 +127,14 @@ const NotificationScreen = () => {
           )}
 
           {/* Button to view on map */}
-          <TouchableOpacity
-            style={tw`mt-6 bg-blue-500 rounded-full px-4 py-2`}
-            onPress={handleViewOnMap}
-          >
-            <Text style={tw`text-white text-lg font-bold`}>View on Map</Text>
-          </TouchableOpacity>
+          {selectedRequest && selectedRequest.pickup_location && selectedRequest.destination_location && (
+            <TouchableOpacity
+              style={tw`mt-6 bg-blue-500 rounded-full px-4 py-2`}
+              onPress={handleViewOnMap}
+            >
+              <Text style={tw`text-white text-lg font-bold`}>View on Map</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </SafeAreaView>

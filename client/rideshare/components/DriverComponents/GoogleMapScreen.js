@@ -26,6 +26,22 @@ const calculateDistance = (coord1, coord2) => {
   return distance.toFixed(2); // Returns distance rounded to two decimal places
 };
 
+// Helper function to estimate time based on distance and average speed
+const calculateTime = (distance) => {
+  const averageSpeed = 40; // Average speed in km/h (can be adjusted)
+  const time = distance / averageSpeed; // Time in hours
+  const minutes = time * 60;
+  return Math.round(minutes); // Return time in minutes
+};
+
+// Helper function to calculate fare based on distance
+const calculateFare = (distance) => {
+  const baseFare = 50; // Base fare
+  const ratePerKm = 10; // Rate per kilometer
+  const fare = baseFare + distance * ratePerKm;
+  return fare.toFixed(2); // Return fare rounded to two decimal places
+};
+
 const RideMap = () => {
   const route = useRoute();
   const { pickupLocation, destinationLocation } = route.params || {};
@@ -34,6 +50,8 @@ const RideMap = () => {
   const [errorMsg, setErrorMsg] = useState(null);
   const [loading, setLoading] = useState(true);
   const [distance, setDistance] = useState(null);
+  const [time, setTime] = useState(null);
+  const [fare, setFare] = useState(null);
 
   useEffect(() => {
     const fetchDriverLocation = async () => {
@@ -67,6 +85,13 @@ const RideMap = () => {
           { latitude: destinationLatitude, longitude: destinationLongitude }
         );
         setDistance(calculatedDistance);
+
+        // Calculate time and fare
+        const estimatedTime = calculateTime(calculatedDistance);
+        setTime(estimatedTime);
+
+        const calculatedFare = calculateFare(calculatedDistance);
+        setFare(calculatedFare);
       } else {
         setErrorMsg("Pickup or Destination location coordinates are invalid.");
       }
@@ -144,8 +169,9 @@ const RideMap = () => {
       </MapView>
 
       <View style={styles.infoContainer}>
-        
-      {distance && <Text style={styles.infoText}>Distance: {distance} km</Text>}
+        {distance && <Text style={styles.infoText}>Distance: {distance} km</Text>}
+        {time && <Text style={styles.infoText}>Estimated Time: {time} minutes</Text>}
+        {fare && <Text style={styles.infoText}>Estimated Fare: ₹{fare}</Text>}
       </View>
     </View>
   );
@@ -177,7 +203,6 @@ const styles = StyleSheet.create({
     right: 0,
     borderTopWidth: 1,
     borderTopColor: "#ccc",
-    
   },
   infoText: {
     fontWeight: "bold", // Make text bold

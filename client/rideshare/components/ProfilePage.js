@@ -25,7 +25,7 @@ const ProfilePage = () => {
     const fetchUserData = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.29.122:3000/api/users/${userId}`
+          `http://192.168.35.164:3000/api/users/${userId}`
         );
         const { username, email, phonenumber, gender } = response.data; // Adjust property names as needed
         setUserName(username);
