@@ -27,7 +27,7 @@ const DriverHome = () => {
     const fetchAllRideRequests = async () => {
       try {
         const response = await axios.get(
-          "http://192.168.35.164:3000/api/ride-requests"
+          "http://192.168.58.164:3000/api/ride-requests"
         );
          // Debugging API response
         setRideRequests(response.data);
@@ -63,7 +63,6 @@ const DriverHome = () => {
       // Log the selected request to inspect the coordinates
       console.log("Selected Request for Accepting Ride:", selectedRequest);
       console.log("Request ID sent to backend:", selectedRequest.id);
-
   
       // Geocode the pickup and destination locations using OpenStreetMap Nominatim
       const getCoordinates = async (location) => {
@@ -91,7 +90,7 @@ const DriverHome = () => {
   
       // Proceed with accepting the request if the coordinates are valid
       const response = await axios.post(
-        `http://192.168.35.164:3000/api/ride-requests/${selectedRequest.id}/accept`,
+        `http://192.168.58.164:3000/api/ride-requests/${selectedRequest.id}/accept`,
         {
           driver_id: "driver123", // Driver's ID
           request_id: selectedRequest.id,
@@ -101,10 +100,20 @@ const DriverHome = () => {
       if (response.status === 200) {
         Alert.alert("Success", "Ride request accepted.");
   
-        // Navigate to the RideMap screen with valid coordinates
+        // Navigate to the RideMap screen with valid coordinates and titles
         navigation.navigate("GoogleMapScreen", {
-          pickupLocation: pickupCoordinates,
-          destinationLocation: destinationCoordinates,
+          pickupLocation: {
+            latitude: pickupCoordinates.latitude,
+            longitude: pickupCoordinates.longitude,
+            title: selectedRequest.pickup_location, // Pass pickup title
+          },
+          destinationLocation: {
+            latitude: destinationCoordinates.latitude,
+            longitude: destinationCoordinates.longitude,
+            title: selectedRequest.destination_location, // Pass destination title
+          },
+          riderDetail: {riderDetail:selectedRequest.rider_name},
+          role: "rider", // Pass rider details if available
         });
       } else {
         Alert.alert("Error", "Failed to accept the ride request.");
@@ -113,6 +122,7 @@ const DriverHome = () => {
       Alert.alert("Error", `Failed to accept ride request. ${error.message}`);
     }
   };
+  
   
   
   const handleReject = async () => {

@@ -38,7 +38,7 @@ const PostRideScreen = () => {
     const fetchUserDetails = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.35.164:3000/api/users/${userId}`
+          `http://192.168.58.164:3000/api/users/${userId}`
         );
         const user = response.data;
         setDriverName(user.username); // Assuming 'username' field exists in user table
@@ -111,7 +111,7 @@ const PostRideScreen = () => {
     };
   
     try {
-      const BACKEND_URL = "http://192.168.35.164:3000"; 
+      const BACKEND_URL = "http://192.168.58.164:3000"; 
   
       // Send POST request to create a new ride
       const response = await axios.post(`${BACKEND_URL}/api/rides`, rideDetails);
@@ -119,8 +119,12 @@ const PostRideScreen = () => {
       if (response.status === 201) {
         Alert.alert("Success", "Ride has been posted successfully!");
   
+        // Send the driver's name to the new endpoint
+        await axios.post(`${BACKEND_URL}/api/driver-name`, { driver_name: DriverName });
+  
+        // Your existing socket logic...
         if (socket) {
-          socket.emit("newRide", response.data.ride); // Emit the new ride via Socket.IO
+          socket.emit("newRide", response.data.ride);
         }
   
         // Navigate back to DriverHome or another relevant screen

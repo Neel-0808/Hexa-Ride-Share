@@ -31,7 +31,7 @@ const RideDetails = ({ route }) => {
     const fetchUserDetails = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.35.164:3000/api/users/${userId}`
+          `http://192.168.58.164:3000/api/users/${userId}`
         );
         const user = response.data;
         setRiderName(user.username); // Assuming 'username' field exists in user table
@@ -73,7 +73,7 @@ const RideDetails = ({ route }) => {
 
     try {
       const response = await axios.post(
-        "http://192.168.35.164:3000/api/ride-requests",
+        "http://192.168.58.164:3000/api/ride-requests",
         rideRequest
       );
 

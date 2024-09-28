@@ -189,6 +189,41 @@ app.get("/api/ride-requests", async (req, res) => {
   }
 });
 
+
+
+app.post("/api/driver-name", async (req, res) => {
+  const { driver_name } = req.body;
+
+  try {
+    // Here, you can implement any logic you need with the driver name
+    console.log("Driver name received:", driver_name);
+    
+    // Respond back to the client
+    res.status(200).json({ message: "Driver name received successfully" });
+  } catch (error) {
+    console.error("Error processing driver name:", error);
+    res.status(500).json({ error: "Failed to process driver name" });
+  }
+});
+
+app.get("/api/driver-name", async (req, res) => {
+  try {
+    // Query the ride_requests table to get the driver name
+    const result = await dbQuery("SELECT driver_name FROM rides"); // Modify this query based on your table structure
+
+    if (result.length > 0) {
+      const driverNames = result.map(request => request.driver_name); // Assuming 'driver_name' is the field name
+      res.status(200).json({ driverNames });
+    } else {
+      res.status(404).json({ error: "No driver names found" });
+    }
+  } catch (error) {
+    console.error("Error fetching driver names:", error);
+    res.status(500).json({ error: "Failed to fetch driver names" });
+  }
+});
+
+
 // POST request to accept a ride and send a notification to the rider
 app.post("/api/ride-requests/:id/accept", async (req, res) => {
   const requestId = req.params.id; // Retrieve the ride request ID from URL parameters

@@ -12,14 +12,59 @@ import {
 import tw from "twrnc"; // Tailwind CSS for styling
 
 const NotificationScreen = ({ route }) => {
-  // Destructure requestId and selectedRequest from route params
-  const { requestId, selectedRequest } = route.params || {}; // Fallback to an empty object
-  console.log("Route Params:", route.params); // Log route params for debugging
-  console.log("Selected Request:", selectedRequest); // Log selectedRequest
+  const { requestId } = route.params || {};
+  console.log("Route Params:", route.params);
 
-  const [rideStatus, setRideStatus] = useState("Pending"); // Default status
+  const [rideStatus, setRideStatus] = useState("Pending");
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [driverName, setDriverName] = useState(""); // State to hold the driver name
   const [isLoading, setIsLoading] = useState(true);
   const navigation = useNavigation();
+
+  // Fetch ride requests and find the selected request
+  useEffect(() => {
+    const fetchRideRequests = async () => {
+      try {
+        if (!requestId) {
+          throw new Error("RequestId is undefined or null");
+        }
+
+        const response = await axios.get(`http://192.168.58.164:3000/api/ride-requests`);
+        const request = response.data.find((req) => req.id === requestId);
+
+        if (!request) {
+          throw new Error("Ride request not found");
+        }
+
+        setSelectedRequest(request);
+      } catch (error) {
+        console.error("Error fetching ride requests:", error.message);
+        Alert.alert("Error", `Failed to fetch ride requests. Error: ${error.message}`);
+      }
+    };
+
+    fetchRideRequests();
+  }, [requestId]);
+
+  // Fetch the driver name
+  useEffect(() => {
+    const fetchDriverName = async () => {
+      try {
+        const response = await axios.get(`http://192.168.58.164:3000/api/driver-name`);
+        if (response.data && response.data.driverNames && response.data.driverNames.length > 0) {
+          // Assuming you want the first driver name from the response
+          setDriverName(response.data.driverNames[0]); 
+        } else {
+          throw new Error("No driver names found");
+        }
+      } catch (error) {
+        console.error("Error fetching driver name:", error);
+        Alert.alert("Error", `Failed to fetch driver name. Error: ${error.message}`);
+      }
+    };
+
+    fetchDriverName();
+  }, []);
 
   // Polling to check ride status
   useEffect(() => {
@@ -30,41 +75,33 @@ const NotificationScreen = ({ route }) => {
         }
 
         const response = await axios.get(
-          `http://192.168.35.164:3000/api/ride-requests/status?requestId=${requestId}`
+          `http://192.168.58.164:3000/api/ride-requests/status?requestId=${requestId}`
         );
 
         if (response.data && response.data.status) {
-          setRideStatus(response.data.status); // Update status from backend
+          setRideStatus(response.data.status);
         } else {
           throw new Error("Invalid response data");
         }
       } catch (error) {
         console.error("Error fetching ride status:", error);
-        Alert.alert(
-          "Error",
-          `Failed to fetch ride status. Error: ${error.message}`
-        );
+        Alert.alert("Error", `Failed to fetch ride status. Error: ${error.message}`);
       } finally {
-        setIsLoading(false); // Ensure loading state is updated
+        setIsLoading(false);
       }
     };
 
-    // Initial fetch
     fetchRideStatus();
 
-    // Set up polling to check status every 5 seconds
     const intervalId = setInterval(fetchRideStatus, 5000);
 
-    // Clean up the interval on component unmount
     return () => clearInterval(intervalId);
-  }, [requestId]); // Dependency array to trigger effect when requestId changes
+  }, [requestId]);
 
   const getCoordinates = async (location) => {
     try {
       const response = await axios.get(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-          location
-        )}&format=json&limit=1`
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`
       );
 
       if (response.data.length > 0) {
@@ -74,38 +111,43 @@ const NotificationScreen = ({ route }) => {
         throw new Error(`No results found for location: ${location}`);
       }
     } catch (error) {
-      throw new Error(
-        `Failed to fetch coordinates for ${location}: ${error.message}`
-      );
+      throw new Error(`Failed to fetch coordinates for ${location}: ${error.message}`);
     }
   };
 
   const handleViewOnMap = async () => {
-    try {
-      // Ensure selectedRequest is valid
-      if (!selectedRequest || !selectedRequest.pickup_location || !selectedRequest.destination_location) {
-        throw new Error("Pickup or destination location is not available.");
-      }
-
-      const pickupCoordinates = await getCoordinates(
-        selectedRequest.pickup_location
-      );
-      const destinationCoordinates = await getCoordinates(
-        selectedRequest.destination_location
-      );
-
-      console.log("Pickup Coordinates:", pickupCoordinates);
-      console.log("Destination Coordinates:", destinationCoordinates);
-
-      // Navigate to the GoogleMapScreen with valid coordinates
-      navigation.navigate("GoogleMapScreen", {
-        pickupLocation: pickupCoordinates,
-        destinationLocation: destinationCoordinates,
-      });
-    } catch (error) {
-      Alert.alert("Error", error.message);
+  try {
+    if (!selectedRequest || !selectedRequest.pickup_location || !selectedRequest.destination_location) {
+      throw new Error("Pickup or destination location is not available.");
     }
-  };
+
+    // Fetch pickup and destination coordinates
+    const pickupCoordinates = await getCoordinates(selectedRequest.pickup_location);
+    const destinationCoordinates = await getCoordinates(selectedRequest.destination_location);
+
+    console.log("Pickup Coordinates:", pickupCoordinates);
+    console.log("Destination Coordinates:", destinationCoordinates);
+
+    // Navigate to GoogleMapScreen with driver name, pickup and destination locations
+    navigation.navigate("GoogleMapScreen", {
+      pickupLocation: {
+        latitude: pickupCoordinates.latitude,
+        longitude: pickupCoordinates.longitude,
+        title: selectedRequest.pickup_location, // Pass pickup title
+      },
+      destinationLocation: {
+        latitude: destinationCoordinates.latitude,
+        longitude: destinationCoordinates.longitude,
+        title: selectedRequest.destination_location, // Pass destination title
+      },
+      driverName: selectedRequest.driver_name, // Pass the driver's name
+      role: "driver", // Pass the role
+    });
+  } catch (error) {
+    Alert.alert("Error", error.message);
+  }
+};
+
 
   return (
     <SafeAreaView style={tw`flex-1 bg-white justify-center items-center`}>
@@ -122,18 +164,21 @@ const NotificationScreen = ({ route }) => {
             </Text>
           ) : (
             <Text style={tw`text-lg text-green-500`}>
-              Driver has accepted the ride!
+              Driver {driverName} has accepted the ride! {/* Display driver name */}
             </Text>
           )}
 
-          {/* Button to view on map */}
-          {selectedRequest && selectedRequest.pickup_location && selectedRequest.destination_location && (
+          {selectedRequest && selectedRequest.pickup_location && selectedRequest.destination_location ? (
             <TouchableOpacity
               style={tw`mt-6 bg-blue-500 rounded-full px-4 py-2`}
               onPress={handleViewOnMap}
             >
               <Text style={tw`text-white text-lg font-bold`}>View on Map</Text>
             </TouchableOpacity>
+          ) : (
+            <Text style={tw`text-red-500 text-lg mt-4`}>
+              Pickup or destination location not available.
+            </Text>
           )}
         </View>
       )}

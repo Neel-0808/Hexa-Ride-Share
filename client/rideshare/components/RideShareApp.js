@@ -35,7 +35,7 @@ const RideShareApp = () => {
     const fetchAllRides = async () => {
       try {
         const response = await axios.get(
-          "http://192.168.35.164:3000/api/rides"
+          "http://192.168.58.164:3000/api/rides"
         );
         setRides(response.data);
         setFilteredRides(response.data);
@@ -60,7 +60,7 @@ const RideShareApp = () => {
       const formattedDate = date.toISOString().split("T")[0];
       const formattedTime = time.toTimeString().split(" ")[0];
 
-      const response = await axios.get("http://192.168.35.164:3000/api/rides", {
+      const response = await axios.get("http://192.168.58.164:3000/api/rides", {
         params: {
           date: formattedDate,
           time: formattedTime,
@@ -113,7 +113,7 @@ const RideShareApp = () => {
 
   const handleRideRequest = async () => {
     try {
-      const response = await axios.get("http://192.168.35.164:3000/api/ride-requests");
+      const response = await axios.get("http://192.168.58.164:3000/api/ride-requests");
       console.log("Ride Requests Data:", response.data);
   
       if (Array.isArray(response.data) && response.data.length > 0) {
