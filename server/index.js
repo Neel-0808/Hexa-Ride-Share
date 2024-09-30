@@ -190,44 +190,57 @@ app.get("/api/ride-requests", async (req, res) => {
 });
 
 
+app.post('/generateTransactionToken', (req, res) => {
+  const { mid, orderId, amount } = req.body;
 
-app.post("/api/driver-name", async (req, res) => {
-  const { driver_name } = req.body;
+  const paytmParams = {
+    body: {
+      requestType: 'Payment',
+      mid: mid,
+      websiteName: 'WEBSTAGING',
+      orderId: orderId,
+      txnAmount: {
+        value: amount,
+        currency: 'INR',
+      },
+      userInfo: {
+        custId: 'CUST123',
+      },
+      callbackUrl: 'https://securegw-stage.paytm.in/theia/paytmCallback?ORDER_ID=' + orderId,
+    },
+  };
 
-  try {
-    // Here, you can implement any logic you need with the driver name
-    console.log("Driver name received:", driver_name);
-    
-    // Respond back to the client
-    res.status(200).json({ message: "Driver name received successfully" });
-  } catch (error) {
-    console.error("Error processing driver name:", error);
-    res.status(500).json({ error: "Failed to process driver name" });
-  }
-});
+  const checksum = generateSignature(paytmParams.body, 'YourMerchantKey');
+  paytmParams.head = { signature: checksum };
 
-app.get("/api/driver-name", async (req, res) => {
-  try {
-    // Query the ride_requests table to get the driver name
-    const result = await dbQuery("SELECT driver_name FROM rides"); // Modify this query based on your table structure
+  const post_data = JSON.stringify(paytmParams);
 
-    if (result.length > 0) {
-      const driverNames = result.map(request => request.driver_name); // Assuming 'driver_name' is the field name
-      res.status(200).json({ driverNames });
-    } else {
-      res.status(404).json({ error: "No driver names found" });
+  const options = {
+    hostname: 'securegw-stage.paytm.in',
+    port: 443,
+    path: `/theia/api/v1/initiateTransaction?mid=${mid}&orderId=${orderId}`,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Length': post_data.length,
+    },
+    body: post_data,
+  };
+
+  request(options, (err, response, body) => {
+    if (err) {
+      return res.status(500).json({ error: 'Transaction token generation failed' });
     }
-  } catch (error) {
-    console.error("Error fetching driver names:", error);
-    res.status(500).json({ error: "Failed to fetch driver names" });
-  }
+    const result = JSON.parse(body);
+    res.json(result);
+  });
 });
+
 
 
 // POST request to accept a ride and send a notification to the rider
 app.post("/api/ride-requests/:id/accept", async (req, res) => {
   const requestId = req.params.id; // Retrieve the ride request ID from URL parameters
-
   try {
     // Find the rider's request and Expo push token from DB
     const result = await dbQuery(

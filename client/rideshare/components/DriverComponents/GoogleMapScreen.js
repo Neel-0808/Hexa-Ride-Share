@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { View, Text, ActivityIndicator, StyleSheet, Alert, TouchableOpacity, Dimensions, Modal } from "react-native";
 import * as Location from "expo-location";
 import MapView, { Marker, Polyline } from "react-native-maps";
-import { useRoute , useNavigation} from "@react-navigation/native";
+import { useRoute, useNavigation } from "@react-navigation/native";
 import Icon from 'react-native-vector-icons/FontAwesome';
+import PaymentScreen from "./DriverPay";
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -63,7 +64,7 @@ const simulateRouteCoordinates = (pickup, destination) => {
 const RideMap = () => {
   const navigation = useNavigation(); // Get the navigation object
   const route = useRoute();
-  const { pickupLocation, destinationLocation, role, driverDetails, riderDetail } = route.params || {}; // Get role and details
+  const { pickupLocation, destinationLocation, role, driverNameContext, riderDetail } = route.params || {}; // Get role and details
 
   const [driverLocation, setDriverLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -154,8 +155,11 @@ const RideMap = () => {
   };
 
   const handlePaymentPress = () => {
-    // Navigate to the DriverPay screen
     navigation.navigate('DriverPay'); // Pass the fare if needed
+  };
+
+  const handleScanToPayPress = () => {
+    navigation.navigate('PaymentScreen')
   };
 
   return (
@@ -200,9 +204,9 @@ const RideMap = () => {
 
       <View style={styles.tripDetailsContainer}>
         <Text style={styles.tripTitle}>Trip Details</Text>
-        
+
         <View style={styles.riderDetailContainer}>
-          <Text style={styles.riderText}>{role === "rider" ? riderDetail?.riderDetail || "Rider Name" : driverDetails?.driver_name || "Driver Name"}</Text>
+          <Text style={styles.riderText}>{role === "rider" ? riderDetail?.riderDetail || "Rider Name" : driverNameContext?.driverNameContext|| "Driver Name"}</Text>
           <TouchableOpacity style={styles.callIcon}>
             <Icon name="phone" size={20} color="green" />
           </TouchableOpacity>
@@ -210,57 +214,64 @@ const RideMap = () => {
 
         <View style={styles.tripInfoRow}>
           <View style={styles.tripInfoItem}>
-            <Icon name="road" size={20} color="gray" />
+            <Icon name="road" size={20} color="black" />
             <Text style={styles.tripInfoText}>{distance ? `${distance} km` : "Distance..."}</Text>
           </View>
           <View style={styles.tripInfoItem}>
-            <Icon name="clock-o" size={20} color="gray" />
+            <Icon name="clock-o" size={20} color="black" />
             <Text style={styles.tripInfoText}>{time ? `${time} min` : "Estimating time..."}</Text>
           </View>
           <View style={styles.tripInfoItem}>
-            <Icon name="money" size={20} color="gray" />
+            <Icon name="money" size={20} color="brown" />
             <Text style={styles.tripInfoText}>{fare ? `₹${fare}` : "Fare..."}</Text>
           </View>
         </View>
 
         <View style={styles.pickupDropContainer}>
           <View style={styles.pickupDropItem}>
-            <Icon name="map-marker" size={20} color="gray" />
-            <Text style={styles.pickupDropText}>{pickupLocation ? `Pickup: ${pickupLocation?.title || "Unknown"}` : "Pickup location..."}</Text>
+            <Icon name="map-marker" size={20} color="green" />
+            <Text style={styles.pickupDropText}>Pickup: {pickupLocation?.title || "Pickup Address"}</Text>
           </View>
           <View style={styles.pickupDropItem}>
-            <Icon name="map-marker" size={20} color="gray" />
-            <Text style={styles.pickupDropText}>{destinationLocation ? `Drop: ${destinationLocation?.title || "Unknown"}` : "Destination location..."}</Text>
+            <Icon name="map-marker" size={20} color="red" />
+            <Text style={styles.pickupDropText}>Drop: {destinationLocation?.title || "Destination Address"}</Text>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.reachedButton} onPress={handleReachedPress}>
-          <Text style={styles.reachedButtonText}>Reached</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Button displayed for rider */}
+        {role === "rider" && (
+          <TouchableOpacity style={styles.reachedButton} onPress={handleReachedPress}>
+            <Text style={styles.reachedButtonText}>Reached</Text>
+          </TouchableOpacity>
+        )}
 
-      <Modal visible={modalVisible} transparent={true}>
-  <View style={styles.modalContainer}>
-    <View style={styles.modalContent}>
-      <Text style={styles.modalTitle}>Payment Details</Text>
-      <Text style={styles.modalTitle}>Total Fare: ₹{fare}</Text>
-      <TouchableOpacity 
-        style={styles.paymentButton} 
-        onPress={handlePaymentPress} // Updated here
-      >
+        {/* Button displayed for driver */}
+        {role === "driver" && (
+          <TouchableOpacity style={styles.paymentButton} onPress={handleScanToPayPress}>
+            <Text style={styles.paymentButtonText}>Scan to Pay</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Modal to confirm reaching destination */}
+        <Modal
+          visible={modalVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalText}>Successfully Reached Your destination...</Text>
+              <TouchableOpacity style={styles.paymentButton} onPress={handlePaymentPress}>
         <Text style={styles.paymentButtonText}>Pay Now</Text>
       </TouchableOpacity>
-      <TouchableOpacity 
-        style={styles.closeButton} 
-        onPress={() => setModalVisible(false)} // Close button to dismiss the modal
-      >
+      <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
         <Text style={styles.closeButtonText}>Close</Text>
       </TouchableOpacity>
-    </View>
-  </View>
-</Modal>
-
-
+            </View>
+          </View>
+        </Modal>
+      </View>
     </View>
   );
 };
@@ -293,20 +304,56 @@ const styles = StyleSheet.create({
   tripDetailsContainer: {
     position: "absolute",
     bottom: 0,
-    padding: 20,
-    backgroundColor: "white",
+    width: screenWidth,
+    padding: 10,
+    backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    elevation: 10,
-    width: '100%',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   tripTitle: {
     fontSize: 18,
     fontWeight: "bold",
+    textAlign: "center",
     marginBottom: 10,
   },
+  riderDetailContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  riderText: {
+    fontSize: 16,
+    fontWeight: "bold",
+   
+  },
+  callIcon: {
+    padding: 10,
+    borderRadius: 20,
+    backgroundColor: "#f0f0f0",
+  },
+  tripInfoRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 10,
+  },
+  tripInfoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  tripInfoText: {
+    marginLeft: 5,
+    fontSize: 14,
+  },
   pickupDropContainer: {
-    marginBottom: 15,
+    marginTop: 10,
   },
   pickupDropItem: {
     flexDirection: "row",
@@ -315,50 +362,23 @@ const styles = StyleSheet.create({
   },
   pickupDropText: {
     marginLeft: 10,
-    fontSize: 16,
-    color: "#333",
-  },
-  riderDetailContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
-  riderText: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  tripInfoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
-  tripInfoItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    flex: 1,
-  },
-  tripInfoText: {
-    marginLeft: 10,
-    fontSize: 16,
-    color: "#333",
-  },
-  callIcon: {
-    padding: 10,
-    backgroundColor: '#32CD32',
-    borderRadius: 20,
+    fontSize: 14,
   },
   reachedButton: {
-    position: "absolute",
-    bottom: 20,
-    right: 20,
-    backgroundColor: "#1E90FF",
-    padding: 12,
+    marginTop: 15,
+    paddingVertical: 10,
+    backgroundColor: "green",
     borderRadius: 10,
-    elevation: 5,
+    justifyContent: "center",
+    alignItems: "center",
   },
   reachedButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+
+  paymentButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
@@ -370,24 +390,28 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    backgroundColor: "white",
+    width: 300,
     padding: 20,
+    backgroundColor: "#fff",
     borderRadius: 10,
     alignItems: "center",
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
   paymentButton: {
-    backgroundColor: "#32CD32",
-    padding: 10,
+    backgroundColor: "green",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     borderRadius: 5,
+    marginVertical: 10, // Space above and below the payment button
   },
-  paymentButtonText: {
-    color: "white",
-    fontSize: 16,
+  closeButton: {
+    backgroundColor: "red",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginTop: 10, // Add space above the close button
+  },
+  closeButtonText: {
+    color: "#fff",
     fontWeight: "bold",
   },
 });

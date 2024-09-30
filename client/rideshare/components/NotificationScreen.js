@@ -9,15 +9,16 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import tw from "twrnc"; // Tailwind CSS for styling
+import tw from "twrnc"; 
+import { useUser } from "./UserContext"; // Importing UserContext
 
 const NotificationScreen = ({ route }) => {
   const { requestId } = route.params || {};
   console.log("Route Params:", route.params);
 
+  const { driverNameContext } = useUser(); // Accessing driverName from UserContext
   const [rideStatus, setRideStatus] = useState("Pending");
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [driverName, setDriverName] = useState(""); // State to hold the driver name
   const [isLoading, setIsLoading] = useState(true);
   const navigation = useNavigation();
 
@@ -37,6 +38,8 @@ const NotificationScreen = ({ route }) => {
         }
 
         setSelectedRequest(request);
+        
+        // Set driver name if available in request
       } catch (error) {
         console.error("Error fetching ride requests:", error.message);
         Alert.alert("Error", `Failed to fetch ride requests. Error: ${error.message}`);
@@ -45,26 +48,6 @@ const NotificationScreen = ({ route }) => {
 
     fetchRideRequests();
   }, [requestId]);
-
-  // Fetch the driver name
-  useEffect(() => {
-    const fetchDriverName = async () => {
-      try {
-        const response = await axios.get(`http://192.168.58.164:3000/api/driver-name`);
-        if (response.data && response.data.driverNames && response.data.driverNames.length > 0) {
-          // Assuming you want the first driver name from the response
-          setDriverName(response.data.driverNames[0]); 
-        } else {
-          throw new Error("No driver names found");
-        }
-      } catch (error) {
-        console.error("Error fetching driver name:", error);
-        Alert.alert("Error", `Failed to fetch driver name. Error: ${error.message}`);
-      }
-    };
-
-    fetchDriverName();
-  }, []);
 
   // Polling to check ride status
   useEffect(() => {
@@ -116,38 +99,40 @@ const NotificationScreen = ({ route }) => {
   };
 
   const handleViewOnMap = async () => {
-  try {
-    if (!selectedRequest || !selectedRequest.pickup_location || !selectedRequest.destination_location) {
-      throw new Error("Pickup or destination location is not available.");
+    try {
+      if (!selectedRequest || !selectedRequest.pickup_location || !selectedRequest.destination_location) {
+        throw new Error("Pickup or destination location is not available.");
+      }
+  
+      // Fetch pickup and destination coordinates
+      const pickupCoordinates = await getCoordinates(selectedRequest.pickup_location);
+      const destinationCoordinates = await getCoordinates(selectedRequest.destination_location);
+  
+      console.log("Pickup Coordinates:", pickupCoordinates);
+      console.log("Destination Coordinates:", destinationCoordinates);
+  
+      // Log the driver name before navigating
+      console.log("Navigating to GoogleMapScreen with driver name:", driverNameContext);
+  
+      // Navigate to GoogleMapScreen with driver name, pickup and destination locations
+      navigation.navigate("GoogleMapScreen", {
+        pickupLocation: {
+          latitude: pickupCoordinates.latitude,
+          longitude: pickupCoordinates.longitude,
+          title: selectedRequest.pickup_location, // Pass pickup title
+        },
+        destinationLocation: {
+          latitude: destinationCoordinates.latitude,
+          longitude: destinationCoordinates.longitude,
+          title: selectedRequest.destination_location, // Pass destination title
+        },
+        driverNameContext: {driverNameContext:driverNameContext}, // Pass the driver's name from UserContext
+        role: "driver", // Pass the role
+      });
+    } catch (error) {
+      Alert.alert("Error", error.message);
     }
-
-    // Fetch pickup and destination coordinates
-    const pickupCoordinates = await getCoordinates(selectedRequest.pickup_location);
-    const destinationCoordinates = await getCoordinates(selectedRequest.destination_location);
-
-    console.log("Pickup Coordinates:", pickupCoordinates);
-    console.log("Destination Coordinates:", destinationCoordinates);
-
-    // Navigate to GoogleMapScreen with driver name, pickup and destination locations
-    navigation.navigate("GoogleMapScreen", {
-      pickupLocation: {
-        latitude: pickupCoordinates.latitude,
-        longitude: pickupCoordinates.longitude,
-        title: selectedRequest.pickup_location, // Pass pickup title
-      },
-      destinationLocation: {
-        latitude: destinationCoordinates.latitude,
-        longitude: destinationCoordinates.longitude,
-        title: selectedRequest.destination_location, // Pass destination title
-      },
-      driverName: selectedRequest.driver_name, // Pass the driver's name
-      role: "driver", // Pass the role
-    });
-  } catch (error) {
-    Alert.alert("Error", error.message);
-  }
-};
-
+  };
 
   return (
     <SafeAreaView style={tw`flex-1 bg-white justify-center items-center`}>
@@ -164,7 +149,7 @@ const NotificationScreen = ({ route }) => {
             </Text>
           ) : (
             <Text style={tw`text-lg text-green-500`}>
-              Driver {driverName} has accepted the ride! {/* Display driver name */}
+              Driver {driverNameContext} has accepted the ride! {/* Display driver name */}
             </Text>
           )}
 

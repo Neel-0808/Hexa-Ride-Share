@@ -16,12 +16,9 @@ import {
 import tw from "twrnc"; // For Tailwind styles
 import { useUser } from "../UserContext";
 
-// Replace with your actual backend server IP
- // e.g., "http://192.168.1.10:3000"
-
 const PostRideScreen = () => {
-  const { userId } = useUser();
-  const [DriverName , setDriverName] = useState("")
+  const { userId, setDriverNameContext } = useUser(); // Add setRiderName to UserContext
+  const [DriverName, setDriverName] = useState("");
   const [pickupLocation, setPickupLocation] = useState("");
   const [destination, setDestination] = useState("");
   const [carNumber, setCarNumber] = useState(""); // Car Number state
@@ -42,7 +39,6 @@ const PostRideScreen = () => {
         );
         const user = response.data;
         setDriverName(user.username); // Assuming 'username' field exists in user table
-        // Assuming 'phonenumber' field exists in user table
       } catch (error) {
         console.error("Error fetching user details:", error);
         Alert.alert("Error", "Could not fetch user details.");
@@ -51,7 +47,6 @@ const PostRideScreen = () => {
 
     fetchUserDetails();
   }, [userId]);
-
 
   const onDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
@@ -85,23 +80,23 @@ const PostRideScreen = () => {
       Alert.alert("Error", "Please fill all the fields.");
       return;
     }
-  
+
     // Combine selected date and time into a single Date object
     const selectedDateTime = new Date(date);
     selectedDateTime.setHours(time.getHours(), time.getMinutes(), time.getSeconds());
-  
+
     // Get current date and time
     const currentDateTime = new Date();
-  
+
     // Check if the selected date and time are in the past
     if (selectedDateTime < currentDateTime) {
       Alert.alert("Error", "You cannot post a ride in the past. Please select a valid date and time.");
       return;
     }
-  
+
     // Prepare ride details
     const rideDetails = {
-      driver_name: DriverName, 
+      driver_name: DriverName,
       vehicle_info: `${carName} (${carNumber})`,
       origin: pickupLocation,
       destination: destination,
@@ -109,24 +104,27 @@ const PostRideScreen = () => {
       ride_date: date.toLocaleDateString('en-CA'), // Format date as YYYY-MM-DD
       ride_time: time.toLocaleTimeString('en-CA', { hour12: false }),
     };
-  
+
     try {
       const BACKEND_URL = "http://192.168.58.164:3000"; 
-  
+
       // Send POST request to create a new ride
       const response = await axios.post(`${BACKEND_URL}/api/rides`, rideDetails);
-  
+
       if (response.status === 201) {
         Alert.alert("Success", "Ride has been posted successfully!");
-  
+        console.log("drivername:",response.data.DriverName)
+        // Store the rider name in UserContext
+        setDriverNameContext(DriverName); // Assuming destination is used as the rider's name for context
+
         // Send the driver's name to the new endpoint
-        await axios.post(`${BACKEND_URL}/api/driver-name`, { driver_name: DriverName });
-  
+        
+
         // Your existing socket logic...
         if (socket) {
           socket.emit("newRide", response.data.ride);
         }
-  
+
         // Navigate back to DriverHome or another relevant screen
         navigation.navigate("DriverHome");
       } else {
@@ -137,7 +135,7 @@ const PostRideScreen = () => {
       console.error(error);
     }
   };
-  
+
   return (
     <SafeAreaView style={tw`flex-1 bg-white`}>
       {/* Header */}
@@ -154,7 +152,7 @@ const PostRideScreen = () => {
       {/* Form Container */}
       <ScrollView style={tw`p-4`}>
         <View style={tw`bg-white p-4 rounded-lg shadow`}>
-        <TextInput
+          <TextInput
             style={tw`border-b border-gray-300 p-3`}
             placeholder="DriverName"
             value={DriverName}
@@ -172,8 +170,6 @@ const PostRideScreen = () => {
             value={destination}
             onChangeText={setDestination}
           />
-
-
         </View>
 
         <View style={tw`flex-row justify-around mt-3`}>
@@ -256,13 +252,14 @@ const PostRideScreen = () => {
       <View
         style={tw`absolute bottom-0 w-full bg-gray-200 flex-row justify-around p-5 border-t border-gray-300`}
       >
-        <TouchableOpacity onPress={() => navigation.navigate("DriverHome")}>
-          <Ionicons name="home" size={24} color="black" />
-          <Text>Home</Text>
+        <TouchableOpacity onPress={() => navigation.navigate("Home")}>
+          <Text style={tw`text-gray-600`}>Home</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
-          <Ionicons name="person" size={24} color="black" />
-          <Text>Profile</Text>
+          <Text style={tw`text-gray-600`}>Profile</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate("Settings")}>
+          <Text style={tw`text-gray-600`}>Settings</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
