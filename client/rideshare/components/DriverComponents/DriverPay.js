@@ -1,13 +1,15 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import { View, Text, TouchableOpacity, Image, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import tw from "twrnc"; // Tailwind for React Native
 import QRCode from "react-native-qrcode-svg"; // For QR code generation
+import tw from "twrnc";
+import { useUser } from "../UserContext"; // Import UserContext to get UPI ID
 
 const PaymentScreen = ({ navigation }) => {
-  const [rideAmount, setRideAmount] = useState(250); // Example ride amount
-  const [userName, setUserName] = useState("Riya"); // Example user name
-  const [paytmUpiId, setPaytmUpiId] = useState('yourmerchant@paytm'); // Merchant Paytm UPI ID
+  const [rideAmount] = useState(250); // Example ride amount
+  const [userName] = useState("Riya"); // Example user name
+  const { upiId } = useUser(); // Retrieve UPI ID from UserContext
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleFeedbackPress = () => {
     navigation.navigate("FeedbackScreen");
@@ -15,6 +17,18 @@ const PaymentScreen = ({ navigation }) => {
 
   const handleHomePress = () => {
     navigation.navigate("HomeScreen");
+  };
+
+  // Simulate payment success for demonstration purposes
+  const handlePayment = async () => {
+    setIsLoading(true);
+    
+    // Here you would typically send the payment request to your server
+    // For demonstration, we'll just simulate success after a timeout
+    setTimeout(() => {
+      setIsLoading(false);
+      Alert.alert("Payment Success", `You have successfully paid ₹${rideAmount}`);
+    }, 2000);
   };
 
   return (
@@ -28,36 +42,35 @@ const PaymentScreen = ({ navigation }) => {
       </View>
 
       {/* User info and ride amount */}
-      <View
-        style={tw`flex-row items-center justify-between bg-blue-100 p-4 m-4 rounded-lg`}
-      >
+      <View style={tw`flex-row items-center justify-between bg-blue-100 p-4 m-4 rounded-lg`}>
         <View style={tw`flex-row items-center`}>
-          <Image
-            source={{ uri: "https://example.com/your-profile-pic.png" }}
-            style={tw`w-10 h-10 rounded-full`}
-          />
+          <Image source={{ uri: "https://example.com/your-profile-pic.png" }} style={tw`w-10 h-10 rounded-full`} />
           <Text style={tw`ml-2 text-lg`}>{userName}</Text>
         </View>
         <Text style={tw`text-lg`}>Ride Amount: ₹ {rideAmount}</Text>
       </View>
 
-      {/* Paytm QR Code for Payment */}
-      <View
-        style={tw`items-center justify-center m-4 p-6 border border-gray-300 rounded-lg`}
-      >
-        <QRCode
-          value={`upi://pay?pa=${paytmUpiId}&pn=${userName}&am=${rideAmount}&cu=INR`}
-          size={150}
-        />
+      {/* UPI QR Code for Payment */}
+      <View style={tw`items-center justify-center m-4 p-6 border border-gray-300 rounded-lg`}>
+        <QRCode value={`upi://pay?pa=${upiId}&pn=${userName}&am=${rideAmount}&cu=INR`} size={150} />
         <Text style={tw`text-xl mt-4`}>₹ {rideAmount}</Text>
       </View>
 
-      <TouchableOpacity
-        style={tw`bg-gray-200 p-4 mt-4 mx-6 rounded-lg`}
-        onPress={handleHomePress}
-      >
+      {/* Payment Button */}
+      <TouchableOpacity style={tw`bg-green-500 p-4 mt-4 mx-6 rounded-lg`} onPress={handlePayment}>
+        <Text style={tw`text-white text-center`}>Pay Now</Text>
+      </TouchableOpacity>
+
+      {/* Submit Feedback Button */}
+      <TouchableOpacity style={tw`bg-blue-500 p-4 mt-4 mx-6 rounded-lg`} onPress={handleFeedbackPress}>
+        <Text style={tw`text-white text-center`}>Submit Feedback</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={tw`bg-gray-200 p-4 mt-4 mx-6 rounded-lg`} onPress={handleHomePress}>
         <Text style={tw`text-center`}>Back to Home</Text>
       </TouchableOpacity>
+
+      {isLoading && <ActivityIndicator size="large" color="#007bff" style={{ marginTop: 20 }} />}
     </SafeAreaView>
   );
 };

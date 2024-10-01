@@ -1,17 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, Alert, ActivityIndicator, StyleSheet, TextInput } from 'react-native';
+import { View, Text, Button, Alert, StyleSheet, TextInput, TouchableOpacity, Linking } from 'react-native';
 import { BarCodeScanner } from 'expo-barcode-scanner';
-import AllInOneSDKManager from 'paytm_allinone_react-native'; // Paytm SDK
 
 const PaymentScreen = () => {
   const [hasPermission, setHasPermission] = useState(null);
   const [scanning, setScanning] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [merchantId, setMerchantId] = useState('');
-  const [transactionToken, setTransactionToken] = useState('');
-  const [callbackUrl, setCallbackUrl] = useState('');
   const [amount, setAmount] = useState('');
-  const [orderId, setOrderId] = useState('');
+  const [upiLink, setUpiLink] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -23,95 +19,40 @@ const PaymentScreen = () => {
     })();
   }, []);
 
-  const handleBarCodeScanned = async ({ type, data }) => {
-    if (scanning) {
-      setScanning(false);
+  const handleBarCodeScanned = ({ type, data }) => {
+    setScanning(false);
 
-      const params = new URLSearchParams(data.split('?')[1]);
-      const payeeAddress = params.get('pa'); // UPI ID
-      const payeeName = params.get('pn'); // Payee Name
-      const amount = params.get('am'); // Amount
-      const currency = params.get('cu'); // Currency
+    // Extract UPI details from the QR code
+    const params = new URLSearchParams(data.split('?')[1]);
+    const payeeAddress = params.get('pa'); // UPI ID
+    const payeeName = params.get('pn'); // Payee Name
+    const scannedAmount = params.get('am'); // Amount (optional)
+    const currency = params.get('cu') || 'INR'; // Currency (optional, default to INR)
 
-      if (payeeAddress && amount && currency) {
-        setMerchantId(payeeAddress);
-        setAmount(amount);
-        setCallbackUrl(''); // Paytm doesn't include callbackUrl in the QR code
-        Alert.alert('QR Code Scanned', `Merchant UPI ID: ${payeeAddress}`);
-        
-        // Fetch the transaction token after scanning the QR code
-        await fetchTransactionToken(payeeAddress);
-      } else {
-        Alert.alert('Invalid QR Code', 'The scanned QR code does not contain valid payment information.');
-        setScanning(true);
-      }
+    if (payeeAddress) {
+      setMerchantId(payeeAddress);
+
+      // Generate UPI deep link without amount if not present
+      const upiUrl = `upi://pay?pa=${payeeAddress}&pn=${payeeName || 'Merchant'}&cu=${currency}`;
+      setUpiLink(upiUrl);
+
+      Alert.alert('QR Code Scanned', `Merchant UPI ID: ${payeeAddress}`);
+    } else {
+      Alert.alert('Invalid QR Code', 'The scanned QR code does not contain valid UPI information.');
     }
   };
 
-  const fetchTransactionToken = async (mid) => {
-    try {
-      // Send request to your backend API to get the transaction token
-      const response = await fetch('https://your-backend-api.com/generateTransactionToken', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          mid: mid,
-          orderId: `order_${Date.now()}`, // Unique order ID
-          amount: amount,
-        }),
-      });
-      
-      const data = await response.json();
-      if (data && data.body && data.body.txnToken) {
-        setTransactionToken(data.body.txnToken); // Set the fetched transaction token
-      } else {
-        Alert.alert('Error', 'Unable to fetch transaction token');
-      }
-    } catch (error) {
-      console.error('Error fetching transaction token:', error);
-      Alert.alert('Error', 'Error fetching transaction token');
+  const handleOpenUpiApp = () => {
+    if (upiLink && amount) {
+      // Add the amount to the UPI link
+      const finalUpiLink = `${upiLink}&am=${amount}`;
+      Linking.openURL(finalUpiLink)
+        .catch(() => {
+          Alert.alert('Error', 'Unable to open UPI app. Please ensure you have a UPI app installed.');
+        });
+    } else {
+      Alert.alert('Error', 'Please enter a valid amount.');
     }
-  };
-
-  const initiatePayment = async () => {
-    if (!amount || !merchantId || !transactionToken) {
-      Alert.alert('Invalid Details', 'Please ensure you have scanned a valid QR code and entered a valid amount.');
-      return;
-    }
-
-    setIsLoading(true);
-
-    // Set unique orderId
-    const newOrderId = `order_${Date.now()}`;
-    setOrderId(newOrderId);
-
-    try {
-      const response = await AllInOneSDKManager.startTransaction(
-        newOrderId,
-        merchantId,
-        transactionToken,
-        amount,
-        callbackUrl,
-        true, // Set this to false for production
-        false, // appInvokeRestricted, if you want to limit Paytm app invoke, set to true
-        ''
-      );
-      handleSuccess(response);
-    } catch (error) {
-      handleFailure(error);
-    }
-  };
-
-  const handleSuccess = (response) => {
-    setIsLoading(false);
-    Alert.alert('Payment Success', `Transaction ID: ${response.TXNID}`);
-  };
-
-  const handleFailure = (error) => {
-    setIsLoading(false);
-    Alert.alert('Payment Failed', `Reason: ${error.message}`);
   };
 
   if (hasPermission === null) {
@@ -125,7 +66,7 @@ const PaymentScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Pay via QR Code</Text>
-      {!scanning && !isLoading && (
+      {!scanning && !upiLink && (
         <Button title="Start Scanning" onPress={() => setScanning(true)} color="#007bff" />
       )}
       {scanning && (
@@ -136,13 +77,13 @@ const PaymentScreen = () => {
             barCodeTypes={[BarCodeScanner.Constants.BarCodeType.qr]}
           />
           <View style={styles.overlay}>
-            <Text style={styles.scannedText}>{merchantId ? `Merchant ID: ${merchantId}` : 'Scan a QR code'}</Text>
+            <Text style={styles.scannedText}>Scan a QR code</Text>
           </View>
         </View>
       )}
-      {merchantId && !isLoading && (
+      {upiLink && (
         <>
-          <Text style={styles.receiverText}>Merchant ID: {merchantId}</Text>
+          <Text style={styles.receiverText}>Merchant UPI ID: {merchantId}</Text>
           <TextInput
             style={styles.input}
             placeholder="Enter Amount"
@@ -150,11 +91,10 @@ const PaymentScreen = () => {
             value={amount}
             onChangeText={setAmount}
           />
-          <Button title="Confirm Payment" onPress={initiatePayment} color="#28a745" style={styles.confirmButton} />
+          <TouchableOpacity onPress={handleOpenUpiApp} style={styles.upiLinkButton}>
+            <Text style={styles.upiLinkText}>Pay via UPI</Text>
+          </TouchableOpacity>
         </>
-      )}
-      {isLoading && (
-        <ActivityIndicator size="large" color="#007bff" style={styles.loader} />
       )}
     </View>
   );
@@ -218,15 +158,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     width: '100%',
   },
-  confirmButton: {
+  upiLinkButton: {
     marginTop: 20,
-    width: '100%',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#28a745',
+    borderRadius: 5,
   },
-  loader: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -25 }, { translateY: -25 }],
+  upiLinkText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 

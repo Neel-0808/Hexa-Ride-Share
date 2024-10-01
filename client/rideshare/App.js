@@ -17,6 +17,7 @@ import GoogleMapScreen from "./components/DriverComponents/GoogleMapScreen";
 import { UserProvider } from './components/UserContext'; // Import UserProvider
 import DriverPay from "./components/DriverComponents/DriverPay"; // Import Driver
 import PaymentScreen from "./components/PaymentScreen";
+import PaymentDetails from "./components/PaymentDetails";
 
 
 const Stack = createStackNavigator();
@@ -57,6 +58,7 @@ export default function App() {
           <Stack.Screen name="GoogleMapScreen" component={GoogleMapScreen} options={{ headerShown: false }} />
           <Stack.Screen name="DriverPay" component={DriverPay} options={{ headerShown: false }} />
           <Stack.Screen name="PaymentScreen" component={PaymentScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="PaymentDetails" component={PaymentDetails} options={{ headerShown: false }} />
           
         </Stack.Navigator>
       </NavigationContainer>

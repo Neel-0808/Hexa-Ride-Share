@@ -6,6 +6,8 @@ const cors = require("cors");
 const axios = require("axios");
 const { Expo } = require("expo-server-sdk");
 const expo = new Expo(); // To send notifications
+const multer = require('multer');
+const path = require('path');
 
 dotenv.config();
 
@@ -29,6 +31,23 @@ db.connect((err) => {
   }
 });
 
+
+
+// Configure storage settings for uploaded files
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // Specify the upload directory
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname)); // Rename file to avoid conflicts
+  }
+});
+
+const upload = multer({ storage });
+app.use('/uploads', express.static('uploads'));
+
+
+
 // Utility function to convert MySQL query to promises
 const dbQuery = (sql, params = []) => {
   return new Promise((resolve, reject) => {
@@ -41,6 +60,59 @@ const dbQuery = (sql, params = []) => {
     });
   });
 };
+
+
+app.put('/api/users/:id', upload.single('profilePicture'), async (req, res) => {
+  const userId = req.params.id;
+  const { email, mobile, gender, upi_id } = req.body;
+  const profilePicturePath = req.file ? req.file.path : null; // Get the path of the uploaded file
+
+  try {
+    const sql = `
+      UPDATE users 
+      SET email = ?, phonenumber = ?, gender = ?, upi_id = ?, profile_picture = ?
+      WHERE id = ?
+    `;
+    const values = [email, mobile, gender, upi_id, profilePicturePath, userId];
+
+    await db.query(sql, values, (error, results) => {
+      if (error) {
+        console.error("Error updating user:", error);
+        return res.status(500).json({ error: "Failed to update user" });
+      }
+      res.status(200).json({ message: "User updated successfully" });
+    });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({ error: "Failed to update user" });
+  }
+});
+
+// Endpoint to update UPI ID
+app.put('/api/users/:id/upi', async (req, res) => {
+  const userId = req.params.id;
+  const { upi_id } = req.body; // Extract UPI ID from request body
+
+  try {
+    const sql = `
+      UPDATE users 
+      SET upi_id = ?
+      WHERE id = ?
+    `;
+    const values = [upi_id, userId];
+
+    await db.query(sql, values, (error, results) => {
+      if (error) {
+        console.error("Error updating UPI ID:", error);
+        return res.status(500).json({ error: "Failed to update UPI ID" });
+      }
+      res.status(200).json({ message: "UPI ID updated successfully" });
+    });
+  } catch (error) {
+    console.error("Error updating UPI ID:", error);
+    res.status(500).json({ error: "Failed to update UPI ID" });
+  }
+});
 
 // GET request to login
 app.get("/api/login", async (req, res) => {
@@ -79,6 +151,9 @@ app.get("/api/users/:id", (req, res) => {
     }
   });
 });
+
+
+
 
 // POST request to insert a new ride
 app.post("/api/rides", async (req, res) => {
@@ -190,51 +265,6 @@ app.get("/api/ride-requests", async (req, res) => {
 });
 
 
-app.post('/generateTransactionToken', (req, res) => {
-  const { mid, orderId, amount } = req.body;
-
-  const paytmParams = {
-    body: {
-      requestType: 'Payment',
-      mid: mid,
-      websiteName: 'WEBSTAGING',
-      orderId: orderId,
-      txnAmount: {
-        value: amount,
-        currency: 'INR',
-      },
-      userInfo: {
-        custId: 'CUST123',
-      },
-      callbackUrl: 'https://securegw-stage.paytm.in/theia/paytmCallback?ORDER_ID=' + orderId,
-    },
-  };
-
-  const checksum = generateSignature(paytmParams.body, 'YourMerchantKey');
-  paytmParams.head = { signature: checksum };
-
-  const post_data = JSON.stringify(paytmParams);
-
-  const options = {
-    hostname: 'securegw-stage.paytm.in',
-    port: 443,
-    path: `/theia/api/v1/initiateTransaction?mid=${mid}&orderId=${orderId}`,
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Content-Length': post_data.length,
-    },
-    body: post_data,
-  };
-
-  request(options, (err, response, body) => {
-    if (err) {
-      return res.status(500).json({ error: 'Transaction token generation failed' });
-    }
-    const result = JSON.parse(body);
-    res.json(result);
-  });
-});
 
 
 

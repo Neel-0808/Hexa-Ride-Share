@@ -10,6 +10,7 @@ export const UserProvider = ({ children }) => {
   const [driverNameContext, setDriverNameContext] = useState("");
   const [riderId, setRiderId] = useState(null);
   const [riderName, setRiderName] = useState("");
+  const [upiId, setUpiId] = useState(""); // Added UPI ID state
 
   return (
     <UserContext.Provider
@@ -19,6 +20,7 @@ export const UserProvider = ({ children }) => {
         driverNameContext, setDriverNameContext,
         riderId, setRiderId,
         riderName, setRiderName,
+        upiId, setUpiId, // Added UPI ID to context
       }}
     >
       {children}
