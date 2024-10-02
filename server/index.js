@@ -343,7 +343,27 @@ app.get("/api/ride-requests/status", async (req, res) => {
     res.status(500).json({ error: "Failed to retrieve ride status" });
   }
 });
+app.post('/api/submit-feedback', (req, res) => {
+  const { name, email, role, feedback_text, rating, issue } = req.body;
 
+  // Validate that all necessary fields are provided
+  if (!name || !email || !role || !feedback_text || !rating || !issue) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  // Insert feedback into the database
+  const query = `INSERT INTO feedback (name, email, role, feedback_text, rating, issue) 
+                 VALUES (?, ?, ?, ?, ?, ?)`;
+
+  db.query(query, [name, email, role, feedback_text, rating, issue], (err, results) => {
+    if (err) {
+      console.error('Error inserting feedback into database: ', err);
+      return res.status(500).json({ error: 'Failed to submit feedback' });
+    }
+
+    return res.status(200).json({ message: 'Feedback submitted successfully' });
+  });
+});
 // Start the server
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

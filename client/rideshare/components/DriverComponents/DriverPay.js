@@ -16,7 +16,7 @@ const PaymentScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFeedbackPress = () => {
-    navigation.navigate("FeedbackScreen");
+    navigation.navigate("FeedBackForm");
   };
 
   const handleHomePress = () => {
