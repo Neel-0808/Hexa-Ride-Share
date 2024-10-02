@@ -6,9 +6,13 @@ import tw from "twrnc";
 import { useUser } from "../UserContext"; // Import UserContext to get UPI ID
 
 const PaymentScreen = ({ navigation }) => {
-  const [rideAmount] = useState(250); // Example ride amount
+  const [rideAmount] = useState(1); // Fixed ride amount
   const [userName] = useState("Riya"); // Example user name
   const { upiId } = useUser(); // Retrieve UPI ID from UserContext
+  
+  // Debugging: Log the UPI ID to the console
+  console.log("UPI ID:", upiId);
+
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFeedbackPress = () => {
@@ -53,7 +57,7 @@ const PaymentScreen = ({ navigation }) => {
       {/* UPI QR Code for Payment */}
       <View style={tw`items-center justify-center m-4 p-6 border border-gray-300 rounded-lg`}>
         <QRCode value={`upi://pay?pa=${upiId}&pn=${userName}&am=${rideAmount}&cu=INR`} size={150} />
-        <Text style={tw`text-xl mt-4`}>₹ {rideAmount}</Text>
+        <Text style={tw`text-xl mt-4`}>Scan to Pay ₹ {rideAmount}</Text>
       </View>
 
       {/* Payment Button */}
