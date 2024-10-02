@@ -14,6 +14,7 @@ import axios from "axios";
 import * as ImagePicker from 'expo-image-picker';
 import { useUser } from "./UserContext";
 import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
 
 const ProfilePage = () => {
   const { userId, setUserId } = useUser();
@@ -120,7 +121,7 @@ const ProfilePage = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async() => {
     Alert.alert(
       "Confirm Logout",
       "Are you sure you want to logout?",
@@ -132,9 +133,11 @@ const ProfilePage = () => {
         },
         {
           text: "OK",
-          onPress: () => {
-            setUserId(null);
-            navigation.navigate("Login");
+          onPress: async() => {
+            await AsyncStorage.removeItem('userId'); // Clear userId from storage
+    setUserId(null); // Clear userId from context
+    navigation.navigate('Login'); //
+            
           },
         },
       ],

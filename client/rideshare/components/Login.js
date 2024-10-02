@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,24 +6,46 @@ import {
   TouchableOpacity,
   Image,
   Modal,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { Checkbox } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 import axios from "axios";
 import tw from "twrnc";
 import { useUser } from "./UserContext";
 import LottieView from "lottie-react-native";
 
 const Login = () => {
-  const { setUserId } = useUser();
+  const { setUserId, userId } = useUser(); // Get and set user ID from UserContext
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loginStatus, setLoginStatus] = useState(null);
-  const [loginMessage, setLoginMessage] = useState(""); // State for login message
+  const [loginMessage, setLoginMessage] = useState("");
+  const [loading, setLoading] = useState(true); // Loading state to check async storage
   const navigation = useNavigation();
+
+  useEffect(() => {
+    // Check if user is already logged in when the app loads
+    const checkLoginStatus = async () => {
+      try {
+        const storedUserId = await AsyncStorage.getItem('userId');
+        if (storedUserId) {
+          setUserId(storedUserId); // Set user ID in context
+          navigation.navigate('LocationScreen'); // Redirect to the desired screen
+        }
+      } catch (error) {
+        console.error("Failed to check login status:", error);
+      } finally {
+        setLoading(false); // Stop loading once we check async storage
+      }
+    };
+    checkLoginStatus();
+  }, []);
 
   const togglePasswordVisibility = () => {
     setIsPasswordVisible(!isPasswordVisible);
@@ -44,6 +66,12 @@ const Login = () => {
         setUserId(userId);
         setLoginStatus("success");
         setLoginMessage("Login successful! Redirecting...");
+
+        // Store userId in AsyncStorage for persistent login
+        if (rememberMe) {
+          await AsyncStorage.setItem('userId', userId.toString());
+        }
+
         setTimeout(() => {
           setLoginStatus(null);
           navigation.navigate("LocationScreen");
@@ -74,6 +102,21 @@ const Login = () => {
     }
   };
 
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('userId'); // Clear userId from storage
+    setUserId(null); // Clear userId from context
+    navigation.navigate('Login'); // Navigate to login screen after logout
+  };
+
+  if (loading) {
+    // Display a loading indicator while checking login status
+    return (
+      <View style={tw`flex-1 justify-center items-center`}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
   return (
     <View style={tw`flex-1`}>
       {loginStatus && (
@@ -102,7 +145,8 @@ const Login = () => {
           </View>
         </Modal>
       )}
-      {/* Blue Background Section */}
+
+      {/* Login Form */}
       <View
         style={[
           tw`flex-1 bg-blue-600 justify-center px-4`,
@@ -113,7 +157,6 @@ const Login = () => {
           },
         ]}
       >
-        {/* Logo and Welcome Text */}
         <View
           style={tw`absolute top-20 left-5 right-5 flex-row justify-between items-center`}
         >
@@ -199,6 +242,7 @@ const Login = () => {
         >
           <Text style={tw`text-white text-lg font-bold`}>LOGIN</Text>
         </TouchableOpacity>
+        
       </View>
     </View>
   );

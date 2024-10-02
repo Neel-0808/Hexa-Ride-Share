@@ -16,12 +16,9 @@
         android:allowBackup="true"
         android:theme="@style/AppTheme">
 
-        <!-- Add your Google Maps API key here -->
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyAcV3se_Gerwg6pKYZGUiY_UzPsuekH-fM" />
+       
+        
 
-        <!-- Other existing configurations -->
 
     </application>
 
