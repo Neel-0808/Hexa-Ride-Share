@@ -53,7 +53,7 @@ const Login = () => {
 
   const fetchUserCredentials = async () => {
     try {
-      const response = await axios.get("http:/192.168.58.164:3000/api/login", {
+      const response = await axios.get("http:/192.168.53.164:3000/api/login", {
         params: {
           email,
           password,

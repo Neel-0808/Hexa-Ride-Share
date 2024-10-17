@@ -30,7 +30,7 @@ const NotificationScreen = ({ route }) => {
           throw new Error("RequestId is undefined or null");
         }
 
-        const response = await axios.get(`http://192.168.58.164:3000/api/ride-requests`);
+        const response = await axios.get(`http://192.168.53.164:3000/api/ride-requests`);
         const request = response.data.find((req) => req.id === requestId);
 
         if (!request) {
@@ -58,7 +58,7 @@ const NotificationScreen = ({ route }) => {
         }
 
         const response = await axios.get(
-          `http://192.168.58.164:3000/api/ride-requests/status?requestId=${requestId}`
+          `http://192.168.53.164:3000/api/ride-requests/status?requestId=${requestId}`
         );
 
         if (response.data && response.data.status) {

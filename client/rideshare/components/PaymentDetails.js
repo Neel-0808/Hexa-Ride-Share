@@ -21,7 +21,7 @@ const PaymentDetailsScreen = () => {
     const fetchPaymentDetails = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.58.164:3000/api/users/${userId}`
+          `http://192.168.53.164:3000/api/users/${userId}`
         );
         const { upi_id } = response.data;
         setUpiId(upi_id || ""); // Set UPI ID in local state
@@ -46,7 +46,7 @@ const PaymentDetailsScreen = () => {
 
     try {
       const response = await axios.put(
-        `http://192.168.58.164:3000/api/users/${userId}/upi`, // Use the new endpoint
+        `http://192.168.53.164:3000/api/users/${userId}/upi`, // Use the new endpoint
         { upi_id: upiId }
       );
 

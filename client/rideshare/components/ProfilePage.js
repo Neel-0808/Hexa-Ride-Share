@@ -32,7 +32,7 @@ const ProfilePage = () => {
     const fetchUserData = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.58.164:3000/api/users/${userId}`
+          `http://192.168.53.164:3000/api/users/${userId}`
         );
 
         // Logging fetched data for debugging
@@ -44,7 +44,7 @@ const ProfilePage = () => {
         setEmail(email);
         setMobile(phonenumber);
         setGender(gender);
-        setProfilePicture(profile_picture ? `http://192.168.58.164:3000/${profile_picture}` : null); // Formatted URI for the profile picture
+        setProfilePicture(profile_picture ? `http://192.168.53.164:3000/${profile_picture}` : null); // Formatted URI for the profile picture
         setUpiId(upi_id || ""); // Fetch and set UPI ID
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -110,7 +110,7 @@ const ProfilePage = () => {
       formData.append("upi_id", upiId); // Append UPI ID
 
       await axios.put(
-        `http://192.168.58.164:3000/api/users/${userId}`,
+        `http://192.168.53.164:3000/api/users/${userId}`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );

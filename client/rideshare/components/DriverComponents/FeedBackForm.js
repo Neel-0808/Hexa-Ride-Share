@@ -18,7 +18,7 @@ const FeedbackForm = () => {
     const fetchUserData = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.58.164:3000/api/users/${userId}`
+          `http://192.168.53.164:3000/api/users/${userId}`
         );
 
         console.log("Fetched User Data:", response.data);
@@ -46,7 +46,7 @@ const FeedbackForm = () => {
     };
 
     try {
-      const response = await axios.post('http://192.168.58.164:3000/api/submit-feedback', feedbackData);
+      const response = await axios.post('http://192.168.53.164:3000/api/submit-feedback', feedbackData);
 
       if (response.status === 200) {
         Alert.alert('Success', 'Feedback submitted successfully!');

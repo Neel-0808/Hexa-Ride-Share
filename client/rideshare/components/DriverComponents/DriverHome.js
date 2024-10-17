@@ -27,7 +27,7 @@ const DriverHome = () => {
     const fetchAllRideRequests = async () => {
       try {
         const response = await axios.get(
-          "http://192.168.58.164:3000/api/ride-requests"
+          "http://192.168.53.164:3000/api/ride-requests"
         );
          // Debugging API response
         setRideRequests(response.data);
@@ -90,7 +90,7 @@ const DriverHome = () => {
   
       // Proceed with accepting the request if the coordinates are valid
       const response = await axios.post(
-        `http://192.168.58.164:3000/api/ride-requests/${selectedRequest.id}/accept`,
+        `http://192.168.53.164:3000/api/ride-requests/${selectedRequest.id}/accept`,
         {
           driver_id: "driver123", // Driver's ID
           request_id: selectedRequest.id,
