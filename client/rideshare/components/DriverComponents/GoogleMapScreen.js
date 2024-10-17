@@ -5,6 +5,7 @@ import MapView, { Marker, Polyline } from "react-native-maps";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import Icon from 'react-native-vector-icons/FontAwesome';
 import PaymentScreen from "./DriverPay";
+import { useUser } from '../UserContext'; 
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -64,7 +65,7 @@ const simulateRouteCoordinates = (pickup, destination) => {
 const RideMap = () => {
   const navigation = useNavigation(); // Get the navigation object
   const route = useRoute();
-  const { pickupLocation, destinationLocation, role, driverNameContext, riderDetail } = route.params || {}; // Get role and details
+  const { pickupLocation, destinationLocation, role, driverNameContext, riderDetail,driver_Name,progressId } = route.params || {}; // Get role and details
 
   const [driverLocation, setDriverLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -74,6 +75,7 @@ const RideMap = () => {
   const [fare, setFare] = useState(null);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const { userId } = useUser();
 
   useEffect(() => {
     const fetchDriverLocation = async () => {
@@ -150,10 +152,73 @@ const RideMap = () => {
     );
   }
 
-  const handleReachedPress = () => {
+  const handleReachedPress = async () => {
     setModalVisible(true);
+  
+    // Use driverName directly
+    const driverName = driver_Name;
+  
+    // Check if driverName is null
+    if (!driverName) {
+      Alert.alert("Error", "Driver name is required.");
+      setModalVisible(false); // Close modal if there's an error
+      return;
+    }
+  
+    // Ensure you have access to progressId from props or state
+    const progressId = route.params.progressId; // Get progressId from route parameters
+  
+    // Check if progressId is null
+    if (!progressId) {
+      Alert.alert("Error", "Progress ID is required.");
+      setModalVisible(false); // Close modal if there's an error
+      return;
+    }
+  
+    try {
+      // Construct the URL with progressId as a parameter
+      const url = `http://192.168.53.164:3000/api/ride-requests/progress/${driverName}/${progressId}`;
+      const body = JSON.stringify({
+        driverName, // Include driverName in the request body
+        progressId, // Also include progressId in the request body if needed
+      });
+  
+      // Debug: Log URL and request body
+      console.log("Sending request to:", url);
+      console.log("Request body:", body);
+  
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: body,
+      });
+  
+      // Debug: Log the status of the response
+      console.log("Response status:", response.status);
+      
+      const data = await response.json();
+  
+      // Debug: Log the entire response data
+      console.log("Response data:", data);
+  
+      if (response.ok) {
+        Alert.alert("Success", data.message);
+        setModalVisible(true); // Close modal after success
+      } else {
+        Alert.alert("Error", data.message || "Failed to update progress.");
+      }
+    } catch (error) {
+      // Debug: Log the error
+      console.error("Error updating progress:", error);
+      Alert.alert("Error", "An error occurred while updating progress.");
+    }
   };
-
+  
+  
+  
+  
   const handlePaymentPress = () => {
     navigation.navigate('DriverPay'); // Pass the fare if needed
   };

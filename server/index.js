@@ -269,12 +269,14 @@ app.get("/api/ride-requests", async (req, res) => {
 
 
 // POST request to accept a ride and send a notification to the rider
-app.post("/api/ride-requests/:id/accept", async (req, res) => {
+app.post("/api/ride-requests/:id/accept/:driver_name", async (req, res) => {
   const requestId = req.params.id; // Retrieve the ride request ID from URL parameters
+  const driverName = req.params.driver_name; // Retrieve driver name from URL parameters
+
   try {
-    // Find the rider's request and Expo push token from DB
+    // Find the rider's request and necessary details from the DB
     const result = await dbQuery(
-      "SELECT push_token FROM ride_requests WHERE id = ?",
+      "SELECT rider_name, pickup_location, destination_location, push_token FROM ride_requests WHERE id = ?",
       [requestId]
     );
 
@@ -282,12 +284,24 @@ app.post("/api/ride-requests/:id/accept", async (req, res) => {
       return res.status(404).json({ error: "Ride request not found" }); // Handle case where ride request is not found
     }
 
-    const riderExpoPushToken = result[0].push_token;
+    const riderName = result[0].rider_name; // Get rider's name from the result
+    const pickupLocation = result[0].pickup_location; // Get pickup location
+    const destinationLocation = result[0].destination_location; // Get destination location
+    const riderExpoPushToken = result[0].push_token; // Get rider's Expo push token
 
     // Update ride status to "Accepted"
     await dbQuery('UPDATE ride_requests SET status = "Accepted" WHERE id = ?', [
       requestId,
     ]);
+
+    // Insert into the progress table, including driver name
+    const progressInsertResult = await dbQuery(
+      'INSERT INTO progress (rider_name, pickup_location, destination_location, driver_name, progress) VALUES (?, ?, ?, ?, ?)',
+      [riderName, pickupLocation, destinationLocation, driverName, 'on progress']
+    );
+
+    // Capture the ID of the newly created progress entry
+    const progressId = progressInsertResult.insertId; // Get the inserted ID
 
     // Send the push notification using Expo SDK
     if (Expo.isExpoPushToken(riderExpoPushToken)) {
@@ -304,7 +318,12 @@ app.post("/api/ride-requests/:id/accept", async (req, res) => {
       try {
         let tickets = await expo.sendPushNotificationsAsync(messages);
         console.log("Notification tickets:", tickets);
-        res.json({ message: "Ride accepted and notification sent" }); // Respond with success message
+        
+        // Respond with success message and the progress ID
+        res.json({ 
+          message: "Ride accepted, progress recorded, and notification sent", 
+          progressId // Send the ID of the new progress entry
+        });
       } catch (notificationError) {
         console.error("Error sending notification:", notificationError);
         res.status(500).json({ error: "Failed to send notification" }); // Handle notification send failure
@@ -318,6 +337,9 @@ app.post("/api/ride-requests/:id/accept", async (req, res) => {
     res.status(500).json({ error: "Internal server error" }); // Handle internal errors
   }
 });
+
+
+
 
 // GET request to check the status of a ride request by requestId
 app.get("/api/ride-requests/status", async (req, res) => {
@@ -364,6 +386,44 @@ app.post('/api/submit-feedback', (req, res) => {
     return res.status(200).json({ message: 'Feedback submitted successfully' });
   });
 });
+
+
+// PUT request to update progress status
+app.put('/api/ride-requests/progress/:driverName/:progressId', async (req, res) => {
+  const driverName = req.params.driverName; // Get the driver name from URL parameters
+  const progressId = req.params.progressId; // Get the progress ID from URL parameters
+
+  try {
+    // Step 1: Check if the progress entry exists for the given driver name and progress ID
+    const progressQuery = `SELECT driver_name FROM progress WHERE id = ? AND driver_name = ?`;
+    const progressResult = await dbQuery(progressQuery, [progressId, driverName]);
+
+    if (progressResult.length === 0) {
+      return res.status(404).json({ message: "No progress found for the given driver name and progress ID." });
+    }
+
+    // Step 2: Update the progress status to 'complete'
+    const updateProgressQuery = `UPDATE progress SET progress = 'completed' WHERE id = ?`;
+    const updateValues = [progressId]; // Use progressId for the update
+
+    // Execute the query
+    const result = await dbQuery(updateProgressQuery, updateValues);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "No progress found for the given progress ID or it may already be complete." });
+    }
+
+    res.status(200).json({ message: "Progress status updated to complete." });
+  } catch (error) {
+    console.error("Error updating progress:", error);
+    res.status(500).json({ error: "Failed to update progress status" });
+  }
+});
+
+
+
+
+
 // Start the server
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

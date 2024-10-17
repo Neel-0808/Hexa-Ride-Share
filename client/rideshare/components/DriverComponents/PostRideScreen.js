@@ -252,15 +252,7 @@ const PostRideScreen = () => {
       <View
         style={tw`absolute bottom-0 w-full bg-gray-200 flex-row justify-around p-5 border-t border-gray-300`}
       >
-        <TouchableOpacity onPress={() => navigation.navigate("Home")}>
-          <Text style={tw`text-gray-600`}>Home</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
-          <Text style={tw`text-gray-600`}>Profile</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate("Settings")}>
-          <Text style={tw`text-gray-600`}>Settings</Text>
-        </TouchableOpacity>
+       
       </View>
     </SafeAreaView>
   );

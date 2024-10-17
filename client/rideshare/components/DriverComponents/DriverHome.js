@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import tw from "twrnc"; // For Tailwind styles
 import { useNavigation } from "@react-navigation/native";
+import { useUser } from '../UserContext'; 
 
 
 
@@ -20,6 +21,8 @@ const DriverHome = () => {
   const [rideRequests, setRideRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const { userId } = useUser();
+  const [driverName, setDriverName] = useState(null);
   const navigation = useNavigation();
 
   // Fetch all ride requests when the app loads
@@ -43,6 +46,29 @@ const DriverHome = () => {
     fetchAllRideRequests();
   }, []);
 
+  useEffect(() => {
+    const fetchDriverName = async () => {
+      try {
+        const response = await axios.get(
+          `http://192.168.53.164:3000/api/users/${userId}`
+        );
+        // Store the driver name in state
+        setDriverName(response.data.username);
+        console.log("Fetched Driver Name:", response.data.username); // Debugging
+      } catch (error) {
+        console.log("Error fetching driver name:", error.message);
+        Alert.alert(
+          "Error",
+          `Failed to fetch driver name. Error: ${error.message}`
+        );
+      }
+    };
+
+    if (userId) {
+      fetchDriverName();
+    }
+  }, [userId]);
+
   const handlePostRide = () => {
     navigation.navigate("PostRideScreen"); // Navigate to the "Post Ride" screen
   };
@@ -55,12 +81,13 @@ const DriverHome = () => {
 
   const handleAccept = async () => {
     try {
+      // Check if a request is selected
       if (!selectedRequest) {
         Alert.alert("Error", "No request selected");
         return;
       }
   
-      // Log the selected request to inspect the coordinates
+      // Log the selected request details for debugging
       console.log("Selected Request for Accepting Ride:", selectedRequest);
       console.log("Request ID sent to backend:", selectedRequest.id);
   
@@ -88,19 +115,27 @@ const DriverHome = () => {
       console.log("Pickup Coordinates:", pickupCoordinates);
       console.log("Destination Coordinates:", destinationCoordinates);
   
-      // Proceed with accepting the request if the coordinates are valid
-      const response = await axios.post(
-        `http://192.168.53.164:3000/api/ride-requests/${selectedRequest.id}/accept`,
-        {
-          driver_id: "driver123", // Driver's ID
-          request_id: selectedRequest.id,
-        }
-      );
+      // Log driver name for debugging
+      console.log("Driver Name Context:", driverName);
   
+      // Construct the request URL
+      const requestUrl = `http://192.168.53.164:3000/api/ride-requests/${selectedRequest.id}/accept/${encodeURIComponent(driverName)}`;
+  
+      // Proceed with accepting the request
+      const response = await axios.post(requestUrl, {
+        driver_name: driverName, // Driver's ID
+        request_id: selectedRequest.id,
+      });
+  
+      // Log the server response
+      
+  
+      // Check for success
       if (response.status === 200) {
+        const { progressId } = response.data; // Extract the progress ID from the response
         Alert.alert("Success", "Ride request accepted.");
   
-        // Navigate to the RideMap screen with valid coordinates and titles
+        // Navigate to the RideMap screen with valid coordinates and titles, including progress ID
         navigation.navigate("GoogleMapScreen", {
           pickupLocation: {
             latitude: pickupCoordinates.latitude,
@@ -112,16 +147,23 @@ const DriverHome = () => {
             longitude: destinationCoordinates.longitude,
             title: selectedRequest.destination_location, // Pass destination title
           },
-          riderDetail: {riderDetail:selectedRequest.rider_name},
+          driver_Name: driverName,
+          riderDetail: { riderDetail: selectedRequest.rider_name },
           role: "rider", // Pass rider details if available
+          progressId, // Pass the progress ID to the GoogleMapScreen
         });
       } else {
+        console.error("Unexpected response status:", response.status);
         Alert.alert("Error", "Failed to accept the ride request.");
       }
     } catch (error) {
+      console.error("Error in handleAccept:", error);
       Alert.alert("Error", `Failed to accept ride request. ${error.message}`);
     }
   };
+  
+  
+  
   
   
   
