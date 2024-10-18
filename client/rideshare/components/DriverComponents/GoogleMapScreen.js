@@ -204,7 +204,7 @@ const RideMap = () => {
       console.log("Response data:", data);
   
       if (response.ok) {
-        Alert.alert("Success", data.message);
+       
         setModalVisible(true); // Close modal after success
       } else {
         Alert.alert("Error", data.message || "Failed to update progress.");
@@ -220,8 +220,13 @@ const RideMap = () => {
   
   
   const handlePaymentPress = () => {
-    navigation.navigate('DriverPay'); // Pass the fare if needed
+    // Pass the fare and driver name as parameters
+    navigation.navigate('DriverPay', {
+      fare: fare, // Amount to be paid
+      driverName: driver_Name // Driver's name
+    });
   };
+  
 
   const handleScanToPayPress = () => {
     navigation.navigate('PaymentScreen')

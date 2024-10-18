@@ -5,9 +5,10 @@ import QRCode from "react-native-qrcode-svg"; // For QR code generation
 import tw from "twrnc";
 import { useUser } from "../UserContext"; // Import UserContext to get UPI ID
 
-const PaymentScreen = ({ navigation }) => {
-  const [rideAmount] = useState(1); // Fixed ride amount
-  const [userName] = useState("Riya"); // Example user name
+const PaymentScreen = ({ navigation, route }) => {
+  const { driverName, fare } = route.params; // Retrieve driverName and fare from route params
+  const [rideAmount] = useState(fare); // Set ride amount from fare prop
+  const [userName] = useState(driverName); // Set user name from driverName prop
   const { upiId } = useUser(); // Retrieve UPI ID from UserContext
   
   // Debugging: Log the UPI ID to the console
@@ -20,7 +21,7 @@ const PaymentScreen = ({ navigation }) => {
   };
 
   const handleHomePress = () => {
-    navigation.navigate("HomeScreen");
+    navigation.navigate("DriverHome");
   };
 
   // Simulate payment success for demonstration purposes
@@ -60,10 +61,7 @@ const PaymentScreen = ({ navigation }) => {
         <Text style={tw`text-xl mt-4`}>Scan to Pay ₹ {rideAmount}</Text>
       </View>
 
-      {/* Payment Button */}
-      <TouchableOpacity style={tw`bg-green-500 p-4 mt-4 mx-6 rounded-lg`} onPress={handlePayment}>
-        <Text style={tw`text-white text-center`}>Pay Now</Text>
-      </TouchableOpacity>
+      
 
       {/* Submit Feedback Button */}
       <TouchableOpacity style={tw`bg-blue-500 p-4 mt-4 mx-6 rounded-lg`} onPress={handleFeedbackPress}>

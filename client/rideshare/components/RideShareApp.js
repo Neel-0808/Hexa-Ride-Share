@@ -113,7 +113,7 @@ const RideShareApp = () => {
 
   const handleRideRequest = async () => {
     try {
-      const response = await axios.get("http://192.168.5.164:3000/api/ride-requests");
+      const response = await axios.get("http://192.168.53.164:3000/api/ride-requests");
       console.log("Ride Requests Data:", response.data);
   
       if (Array.isArray(response.data) && response.data.length > 0) {

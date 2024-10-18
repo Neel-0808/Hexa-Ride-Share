@@ -143,7 +143,7 @@ const PostRideScreen = () => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={tw`text-white text-xl font-bold`}>Buddy</Text>
+        <Text style={tw`text-white text-xl font-bold`}></Text>
         <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
           <Ionicons name="person-circle-outline" size={40} color="white" />
         </TouchableOpacity>

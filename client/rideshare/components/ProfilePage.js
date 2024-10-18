@@ -168,7 +168,7 @@ const ProfilePage = () => {
           <TouchableOpacity onPress={pickImage}>
             <Image
               source={profilePicture ? { uri: profilePicture } : { uri: "https://via.placeholder.com/100" }} // Use placeholder if no picture is available
-              style={tw`w-24 h-24 rounded-full border-4 border-white`}
+              style={tw`w-24 h-24 rounded-full border-4 border-gray`}
             />
           </TouchableOpacity>
         </View>

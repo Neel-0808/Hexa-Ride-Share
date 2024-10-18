@@ -19,6 +19,7 @@ import DriverPay from "./components/DriverComponents/DriverPay"; // Import Drive
 import PaymentScreen from "./components/PaymentScreen";
 import PaymentDetails from "./components/PaymentDetails";
 import FeedbackForm from "./components/DriverComponents/FeedBackForm";
+import Welcome from "./components/Welcome";
 
 
 const Stack = createStackNavigator();
@@ -45,6 +46,7 @@ export default function App() {
     <UserProvider>
       <NavigationContainer>
         <Stack.Navigator>
+          <Stack.Screen name="Welcome" component={Welcome} options={{ headerShown: false }} />
           <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
           <Stack.Screen name="LocationScreen" component={LocationScreen} options={{ headerShown: false }} />
           <Stack.Screen name="RoleSelectionScreen" component={RoleSelectionScreen} options={{ headerShown: false }} />
