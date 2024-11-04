@@ -30,7 +30,7 @@ const DriverHome = () => {
     const fetchAllRideRequests = async () => {
       try {
         const response = await axios.get(
-          "http://192.168.53.164:3000/api/ride-requests"
+          "http://192.168.215.164:4000/api/ride-requests"
         );
          // Debugging API response
         setRideRequests(response.data);
@@ -50,7 +50,7 @@ const DriverHome = () => {
     const fetchDriverName = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.53.164:3000/api/users/${userId}`
+          `http://192.168.215.164:4000/api/users/${userId}`
         );
         // Store the driver name in state
         setDriverName(response.data.username);
@@ -95,7 +95,12 @@ const DriverHome = () => {
       const getCoordinates = async (location) => {
         try {
           const response = await axios.get(
-            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`,
+            {
+              headers: {
+                'User-Agent': 'YourAppName/1.0 (your-email@example.com)', // Replace with your details
+              },
+            }
           );
           if (response.data.length > 0) {
             const { lat, lon } = response.data[0];
@@ -104,9 +109,13 @@ const DriverHome = () => {
             throw new Error(`No results found for location: ${location}`);
           }
         } catch (error) {
+          if (error.response && error.response.status === 403) {
+            throw new Error('403 Forbidden: You have been blocked by the geocoding service. Try again later.');
+          }
           throw new Error(`Failed to fetch coordinates for ${location}: ${error.message}`);
         }
       };
+      
   
       // Fetch pickup and destination coordinates
       const pickupCoordinates = await getCoordinates(selectedRequest.pickup_location);
@@ -119,7 +128,7 @@ const DriverHome = () => {
       console.log("Driver Name Context:", driverName);
   
       // Construct the request URL
-      const requestUrl = `http://192.168.53.164:3000/api/ride-requests/${selectedRequest.id}/accept/${encodeURIComponent(driverName)}`;
+      const requestUrl = `http://192.168.215.164:4000/api/ride-requests/${selectedRequest.id}/accept/${encodeURIComponent(driverName)}`;
   
       // Proceed with accepting the request
       const response = await axios.post(requestUrl, {

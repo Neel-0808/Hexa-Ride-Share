@@ -13,6 +13,9 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import tw from "twrnc";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
+import { MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const RideShareApp = () => {
   const [pickupLocation, setPickupLocation] = useState("");
@@ -25,6 +28,8 @@ const RideShareApp = () => {
   const [filteredRides, setFilteredRides] = useState([]);
   const [isFiltered, setIsFiltered] = useState(false);
   const navigation = useNavigation();
+  const [showMenu, setShowMenu] = useState(false);
+  
 
   // Dropdown state
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -35,7 +40,7 @@ const RideShareApp = () => {
     const fetchAllRides = async () => {
       try {
         const response = await axios.get(
-          "http://192.168.53.164:3000/api/rides"
+          "http://192.168.215.164:4000/api/rides"
         );
         setRides(response.data);
         setFilteredRides(response.data);
@@ -60,7 +65,7 @@ const RideShareApp = () => {
       const formattedDate = date.toISOString().split("T")[0];
       const formattedTime = time.toTimeString().split(" ")[0];
 
-      const response = await axios.get("http://192.168.53.164:3000/api/rides", {
+      const response = await axios.get("http://192.168.215.164:4000/api/rides", {
         params: {
           date: formattedDate,
           time: formattedTime,
@@ -113,7 +118,7 @@ const RideShareApp = () => {
 
   const handleRideRequest = async () => {
     try {
-      const response = await axios.get("http://192.168.53.164:3000/api/ride-requests");
+      const response = await axios.get("http://192.168.215.164:4000/api/ride-requests");
       console.log("Ride Requests Data:", response.data);
   
       if (Array.isArray(response.data) && response.data.length > 0) {
@@ -142,53 +147,74 @@ const RideShareApp = () => {
   };
 
   // Toggle functions
-  const toggleProfileMenu = () => {
-    setShowProfileMenu((prev) => !prev);
-    setShowNotificationMenu(false); // Close notification menu if it's open
+  const toggleMenu = () => {
+    setShowMenu((prev) => !prev);
   };
-
-  const toggleNotificationMenu = () => {
-    setShowNotificationMenu((prev) => !prev);
-    setShowProfileMenu(false); // Close profile menu if it's open
+  const handleLogout = () => {
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "OK",
+          onPress: () => {
+            // Clear user-related data
+            AsyncStorage.removeItem('userToken')
+              .then(() => {
+                // Clear any context state if you're using Context API
+               // Clear user ID in context
+                // Navigate to the login screen
+                navigation.navigate('Login'); // Adjust to your login screen name
+              })
+              .catch((error) => {
+                console.error("Error clearing user data: ", error);
+              });
+          }
+        }
+      ],
+      { cancelable: false } // Disable dismiss on outside tap
+    );
   };
+  
+  
 
   return (
     <SafeAreaView style={tw`flex-1 bg-gray-100`}>
-      <View style={tw`bg-blue-600 p-4 flex-row justify-between items-center`}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={tw`text-white text-xl font-bold`}>Buddy</Text>
-        <View style={tw`flex-row`}>
-          <TouchableOpacity onPress={toggleProfileMenu}>
-            <Ionicons name="person-circle-outline" size={40} color="white" />
-          </TouchableOpacity>
-          {showProfileMenu && (
-            <View style={tw`absolute right-0 bg-white shadow-lg mt-2 rounded`}>
-              <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
-                <Text style={tw`p-2`}>Profile</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() =>
-                  Alert.alert("Logout", "Are you sure you want to logout?")
-                }
-              >
-                <Text style={tw`p-2`}>Logout</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          <TouchableOpacity onPress={toggleNotificationMenu}>
-            <Ionicons name="notifications-outline" size={24} color="white" />
-          </TouchableOpacity>
-          {showNotificationMenu && (
-            <View style={tw`absolute right-0 bg-white shadow-lg mt-2 rounded`}>
-              <TouchableOpacity onPress={handleRideRequest}>
-                <Text style={tw`p-2`}>Check Notifications</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      </View>
+      <View style={tw`bg-blue-600 p-4 flex-row justify-between items-center relative z-50 `}>
+  <TouchableOpacity onPress={() => navigation.goBack()}>
+    <Ionicons name="arrow-back" size={24} color="white" />
+  </TouchableOpacity>
+  <Text style={tw`text-white text-xl font-bold`}>Buddy</Text>
+  <TouchableOpacity onPress={toggleMenu}>
+    <Ionicons name="menu" size={40} color="white" />
+  </TouchableOpacity>
+
+  {showMenu && (
+    <View
+      style={[
+        tw`absolute right-0 bg-white shadow-lg rounded z-50`,
+        { top: 50, padding: 10, elevation: 5 } // Added elevation for Android
+      ]}
+    >
+      <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
+        <Text style={tw`p-2`}>Profile</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={handleLogout}
+        
+      >
+        <Text style={tw`p-2`}>Logout</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={handleRideRequest}>
+        <Text style={tw`p-2`}>Check Notifications</Text>
+      </TouchableOpacity>
+    </View>
+  )}
+</View>
 
       <View style={tw`bg-white p-5 m-4 rounded-lg shadow-lg`}>
         <TextInput

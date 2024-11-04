@@ -8,6 +8,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-community/checkbox": "^0.5.17",
     "@react-native-community/datetimepicker": "^8.0.1",
     "@react-native-community/geolocation": "^3.4.0",
@@ -33,11 +34,13 @@
     "paytm_allinone_react-native": "^1.2.3",
     "react": "18.2.0",
     "react-native": "0.74.5",
+    "react-native-animatable": "^1.4.0",
     "react-native-camera": "^4.2.1",
     "react-native-check-box": "^2.1.7",
     "react-native-dotenv": "^3.4.11",
     "react-native-geolocation-service": "^5.3.1",
     "react-native-gesture-handler": "^2.19.0",
+    "react-native-linear-gradient": "^2.8.3",
     "react-native-maps": "^1.18.0",
     "react-native-maps-directions": "^1.9.0",
     "react-native-modal": "^13.0.1",
@@ -48,11 +51,12 @@
     "react-native-push-notification": "^8.1.1",
     "react-native-qrcode-scanner": "^1.5.5",
     "react-native-qrcode-svg": "^6.3.2",
+    "react-native-reanimated": "^3.16.1",
     "react-native-upi-payment": "^1.0.5",
     "react-native-vector-icons": "^10.2.0",
     "socket.io-client": "^4.7.5",
     "twrnc": "^4.5.1",
-    "@react-native-async-storage/async-storage": "1.23.1"
+    "expo-linear-gradient": "~13.0.2"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

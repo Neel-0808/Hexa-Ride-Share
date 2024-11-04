@@ -177,7 +177,7 @@ const RideMap = () => {
   
     try {
       // Construct the URL with progressId as a parameter
-      const url = `http://192.168.53.164:3000/api/ride-requests/progress/${driverName}/${progressId}`;
+      const url = `http://192.168.215.164:4000/api/ride-requests/progress/${driverName}/${progressId}`;
       const body = JSON.stringify({
         driverName, // Include driverName in the request body
         progressId, // Also include progressId in the request body if needed

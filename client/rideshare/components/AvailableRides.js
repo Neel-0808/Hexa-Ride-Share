@@ -21,7 +21,7 @@ const AvailableRides = () => {
     const fetchRideRequests = async () => {
       try {
         const response = await axios.get(
-          "http://192.168.53.164:3000/api/rides"
+          "http://192.168.215.164:4000/api/rides"
         );
         // Log the response data
         if (Array.isArray(response.data)) {

@@ -15,6 +15,9 @@ import axios from "axios";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants"; // Importing Expo Notifications
 import { useUser } from "./UserContext"; // Import useUser for accessing user context
+import DateTimePicker from "@react-native-community/datetimepicker"; 
+import { Button } from "react-native";
+
 
 const RideDetails = ({ route }) => {
   const { userId } = useUser(); // Get userId from context
@@ -24,6 +27,9 @@ const RideDetails = ({ route }) => {
   const [pickupLocation, setPickupLocation] = useState("");
   const [destinationLocation, setDestinationLocation] = useState("");
   const [contact, setContact] = useState("");
+  const [showDatePicker, setShowDatePicker] = useState(false); // For showing date picker
+  const [showTimePicker, setShowTimePicker] = useState(false); 
+  const [date, setDate] = useState(new Date()); 
 
   const navigation = useNavigation();
 
@@ -31,7 +37,7 @@ const RideDetails = ({ route }) => {
     const fetchUserDetails = async () => {
       try {
         const response = await axios.get(
-          `http://192.168.53.164:3000/api/users/${userId}`
+          `http://192.168.215.164:4000/api/users/${userId}`
         );
         const user = response.data;
         setRiderName(user.username); // Assuming 'username' field exists in user table
@@ -45,6 +51,18 @@ const RideDetails = ({ route }) => {
 
     fetchUserDetails();
   }, [userId]);
+
+  const onDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || date;
+    setShowDatePicker(false); // Hide the date picker after selecting a date
+    setDate(currentDate); // Set the selected date
+  };
+
+  const onTimeChange = (event, selectedTime) => {
+    const currentTime = selectedTime || date; // Use selected time or existing date
+    setShowTimePicker(false); // Hide the time picker after selecting time
+    setTime(currentTime.toLocaleTimeString()); // Set the selected time as a string
+  };
 
   const handleSubmit = async () => {
     const expoPushToken = await registerForPushNotificationsAsync();
@@ -73,7 +91,7 @@ const RideDetails = ({ route }) => {
 
     try {
       const response = await axios.post(
-        "http://192.168.53.164:3000/api/ride-requests",
+        "http://192.168.215.164:4000/api/ride-requests",
         rideRequest
       );
 
@@ -168,14 +186,30 @@ const RideDetails = ({ route }) => {
           />
         </View>
 
+         {/* Date Picker */}
+         <View style={tw`mb-4`}>
+          <Button title="Set Date" onPress={() => setShowDatePicker(true)} />
+          {showDatePicker && (
+            <DateTimePicker
+              value={date}
+              mode="date"
+              display="default"
+              onChange={onDateChange}
+            />
+          )}
+        </View>
+
+        {/* Time Picker */}
         <View style={tw`mb-4`}>
-          <Text style={tw`text-lg font-bold mb-1`}>Time:</Text>
-          <TextInput
-            style={tw`bg-gray-100 p-2 rounded`}
-            placeholder="Enter time (e.g., 10:00 AM)"
-            value={time}
-            onChangeText={setTime}
-          />
+          <Button title="Set time" onPress={() => setShowTimePicker(true)} />
+          {showTimePicker && (
+            <DateTimePicker
+              value={date}
+              mode="time"
+              display="default"
+              onChange={onTimeChange}
+            />
+          )}
         </View>
 
         <View style={tw`mb-4`}>
